@@ -8,6 +8,7 @@ export interface Song {
   duration: string;
   coverIndex: number;
   category: string;
+  filePath?: string;
 }
 
 interface PlayerState {
@@ -24,7 +25,11 @@ interface PlayerState {
   playlists: { name: string; songs: Song[] }[];
   bgColor: string;
   bgImage: string | null;
+  permissionGranted: boolean;
+  isScanning: boolean;
 
+  setSongs: (songs: Song[]) => void;
+  addSongs: (songs: Song[]) => void;
   setCurrentSong: (song: Song) => void;
   togglePlay: () => void;
   toggleShuffle: () => void;
@@ -41,39 +46,31 @@ interface PlayerState {
   createPlaylist: (name: string) => void;
   setBgColor: (color: string) => void;
   setBgImage: (url: string | null) => void;
+  setPermissionGranted: (granted: boolean) => void;
+  setIsScanning: (scanning: boolean) => void;
 }
 
-const SONGS: Song[] = [
-  { id: '1', title: 'Midnight Drive', artist: 'The Neons', album: 'After Dark', duration: '4:08', coverIndex: 0, category: 'Road' },
-  { id: '2', title: 'Red Light District', artist: 'Velvet Crash', album: 'Neon Nights', duration: '3:42', coverIndex: 1, category: 'Road' },
-  { id: '3', title: 'City of Shadows', artist: 'Dark Pulse', album: 'Urban Decay', duration: '5:15', coverIndex: 2, category: 'Classic' },
-  { id: '4', title: 'Vinyl Dreams', artist: 'Retro Wave', album: 'Analog Heart', duration: '3:58', coverIndex: 3, category: 'Classic' },
-  { id: '5', title: 'Unplugged Soul', artist: 'Acoustic Fire', album: 'Raw Sessions', duration: '4:33', coverIndex: 4, category: 'Road' },
-  { id: '6', title: 'Bassline Fury', artist: 'The Neons', album: 'After Dark', duration: '3:21', coverIndex: 0, category: 'Trap' },
-  { id: '7', title: 'Crimson Wave', artist: 'Velvet Crash', album: 'Neon Nights', duration: '4:47', coverIndex: 1, category: 'Trap' },
-  { id: '8', title: 'Neon Skyline', artist: 'Dark Pulse', album: 'Urban Decay', duration: '3:55', coverIndex: 2, category: 'Save' },
-  { id: '9', title: 'Analog Sunrise', artist: 'Retro Wave', album: 'Analog Heart', duration: '5:02', coverIndex: 3, category: 'Save' },
-  { id: '10', title: 'Fire & Strings', artist: 'Acoustic Fire', album: 'Raw Sessions', duration: '4:19', coverIndex: 4, category: 'Others' },
-];
-
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  songs: SONGS,
+  songs: [],
   currentSong: null,
   isPlaying: false,
   shuffle: false,
   repeat: 'off',
   queue: [],
   currentTime: 0,
-  activeCategory: 'Road',
+  activeCategory: 'All',
   activeView: 'library',
   equalizerBands: [50, 60, 75, 80, 70, 55, 65, 72, 60, 50],
   bgColor: '',
   bgImage: null,
-  playlists: [
-    { name: 'Favorites', songs: [SONGS[0], SONGS[3], SONGS[4]] },
-    { name: 'Workout', songs: [SONGS[1], SONGS[5], SONGS[6]] },
-  ],
+  playlists: [],
+  permissionGranted: false,
+  isScanning: false,
 
+  setSongs: (songs) => set({ songs }),
+  addSongs: (newSongs) => set((s) => ({ 
+    songs: [...s.songs, ...newSongs.filter(ns => !s.songs.find(es => es.id === ns.id))] 
+  })),
   setCurrentSong: (song) => set({ currentSong: song, isPlaying: true }),
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
   toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),
@@ -129,4 +126,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   })),
   setBgColor: (color) => set({ bgColor: color, bgImage: null }),
   setBgImage: (url) => set({ bgImage: url }),
+  setPermissionGranted: (granted) => set({ permissionGranted: granted }),
+  setIsScanning: (scanning) => set({ isScanning: scanning }),
 }));
