@@ -5,6 +5,7 @@ import EqualizerView from '@/components/player/EqualizerView';
 import QueueView from '@/components/player/QueueView';
 import SettingsView from '@/components/player/SettingsView';
 import BottomNav from '@/components/player/BottomNav';
+import PermissionScreen, { ScanningOverlay } from '@/components/player/PermissionScreen';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const views = {
@@ -16,7 +17,7 @@ const views = {
 };
 
 const Index = () => {
-  const { activeView, bgColor, bgImage } = usePlayerStore();
+  const { activeView, bgColor, bgImage, permissionGranted } = usePlayerStore();
   const ActiveComponent = views[activeView];
 
   const phoneStyle: React.CSSProperties = {};
@@ -30,12 +31,10 @@ const Index = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
-      {/* Phone frame */}
       <div
         className="relative w-full max-w-[390px] h-[844px] bg-card rounded-[2.5rem] border-2 border-border overflow-hidden shadow-2xl shadow-primary/5"
         style={phoneStyle}
       >
-        {/* Overlay for readability when bg image is set */}
         {bgImage && (
           <div className="absolute inset-0 bg-card/70 backdrop-blur-sm z-0" />
         )}
@@ -52,26 +51,33 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="relative z-10 h-[calc(100%-4rem)]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeView}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }}
-              className="absolute inset-0"
-            >
-              <ActiveComponent />
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        <ScanningOverlay />
 
-        {/* Bottom nav */}
-        <div className="relative z-10">
-          <BottomNav />
-        </div>
+        {!permissionGranted ? (
+          <div className="relative z-10 h-[calc(100%-4rem)]">
+            <PermissionScreen />
+          </div>
+        ) : (
+          <>
+            <div className="relative z-10 h-[calc(100%-4rem)]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeView}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute inset-0"
+                >
+                  <ActiveComponent />
+                </motion.div>
+              </AnimatePresence>
+            </div>
+            <div className="relative z-10">
+              <BottomNav />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
