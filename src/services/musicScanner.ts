@@ -26,17 +26,17 @@ export async function scanDeviceMusic(): Promise<Song[]> {
     const { CapacitorMediaStore } = await import('@odion-cloud/capacitor-mediastore');
 
     // Request permission
-    const permResult = await CapacitorMediaStore.requestPermission();
+    const permResult = await CapacitorMediaStore.requestPermissions();
     console.log('[MusicScanner] Permission result:', permResult);
 
     // Get all audio files
     const result = await CapacitorMediaStore.getMediasByType({
-      mediaType: 'audio',
+      mediaType: 'audio' as any,
       limit: 500,
       includeExternal: true,
     });
 
-    const files: MediaStoreFile[] = result?.medias ?? [];
+    const files: MediaStoreFile[] = (result as any)?.media ?? (result as any)?.medias ?? [];
 
     const songs: Song[] = files.map((file, index) => ({
       id: file.id ?? `device-${index}`,
