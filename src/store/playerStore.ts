@@ -127,4 +127,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   createPlaylist: (name) => set((s) => ({
     playlists: [...s.playlists, { name, songs: [] }],
   })),
+  setBgColor: (color) => set({ bgColor: color, bgImage: null }),
+  setBgImage: (url) => set({ bgImage: url }),
 }));
