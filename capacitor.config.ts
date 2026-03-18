@@ -1,0 +1,13 @@
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'app.lovable.8ca1e3eb35ee4645b29d33775c572a63',
+  appName: 'Bob Evan',
+  webDir: 'dist',
+  server: {
+    url: 'https://8ca1e3eb-35ee-4645-b29d-33775c572a63.lovableproject.com?forceHideBadge=true',
+    cleartext: true,
+  },
+};
+
+export default config;
