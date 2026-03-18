@@ -67,6 +67,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   activeCategory: 'Road',
   activeView: 'library',
   equalizerBands: [50, 60, 75, 80, 70, 55, 65, 72, 60, 50],
+  bgColor: '',
+  bgImage: null,
   playlists: [
     { name: 'Favorites', songs: [SONGS[0], SONGS[3], SONGS[4]] },
     { name: 'Workout', songs: [SONGS[1], SONGS[5], SONGS[6]] },
