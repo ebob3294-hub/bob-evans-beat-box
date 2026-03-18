@@ -19,9 +19,11 @@ interface PlayerState {
   queue: Song[];
   currentTime: number;
   activeCategory: string;
-  activeView: 'library' | 'nowPlaying' | 'equalizer' | 'queue';
+  activeView: 'library' | 'nowPlaying' | 'equalizer' | 'queue' | 'settings';
   equalizerBands: number[];
   playlists: { name: string; songs: Song[] }[];
+  bgColor: string;
+  bgImage: string | null;
 
   setCurrentSong: (song: Song) => void;
   togglePlay: () => void;
@@ -37,6 +39,8 @@ interface PlayerState {
   prevSong: () => void;
   addToPlaylist: (playlistName: string, songs: Song[]) => void;
   createPlaylist: (name: string) => void;
+  setBgColor: (color: string) => void;
+  setBgImage: (url: string | null) => void;
 }
 
 const SONGS: Song[] = [
@@ -63,6 +67,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   activeCategory: 'Road',
   activeView: 'library',
   equalizerBands: [50, 60, 75, 80, 70, 55, 65, 72, 60, 50],
+  bgColor: '',
+  bgImage: null,
   playlists: [
     { name: 'Favorites', songs: [SONGS[0], SONGS[3], SONGS[4]] },
     { name: 'Workout', songs: [SONGS[1], SONGS[5], SONGS[6]] },
@@ -121,4 +127,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   createPlaylist: (name) => set((s) => ({
     playlists: [...s.playlists, { name, songs: [] }],
   })),
+  setBgColor: (color) => set({ bgColor: color, bgImage: null }),
+  setBgImage: (url) => set({ bgImage: url }),
 }));

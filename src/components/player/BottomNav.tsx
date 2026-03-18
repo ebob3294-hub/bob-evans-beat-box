@@ -1,11 +1,12 @@
 import { usePlayerStore } from '@/store/playerStore';
-import { Library, Disc3, SlidersHorizontal, ListMusic } from 'lucide-react';
+import { Library, Disc3, SlidersHorizontal, ListMusic, Settings } from 'lucide-react';
 
 const tabs = [
   { id: 'library' as const, icon: Library, label: 'Library' },
   { id: 'nowPlaying' as const, icon: Disc3, label: 'Playing' },
   { id: 'equalizer' as const, icon: SlidersHorizontal, label: 'EQ' },
   { id: 'queue' as const, icon: ListMusic, label: 'Queue' },
+  { id: 'settings' as const, icon: Settings, label: 'Settings' },
 ];
 
 const BottomNav = () => {
