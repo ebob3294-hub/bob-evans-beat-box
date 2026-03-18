@@ -19,9 +19,11 @@ interface PlayerState {
   queue: Song[];
   currentTime: number;
   activeCategory: string;
-  activeView: 'library' | 'nowPlaying' | 'equalizer' | 'queue';
+  activeView: 'library' | 'nowPlaying' | 'equalizer' | 'queue' | 'settings';
   equalizerBands: number[];
   playlists: { name: string; songs: Song[] }[];
+  bgColor: string;
+  bgImage: string | null;
 
   setCurrentSong: (song: Song) => void;
   togglePlay: () => void;
@@ -37,6 +39,8 @@ interface PlayerState {
   prevSong: () => void;
   addToPlaylist: (playlistName: string, songs: Song[]) => void;
   createPlaylist: (name: string) => void;
+  setBgColor: (color: string) => void;
+  setBgImage: (url: string | null) => void;
 }
 
 const SONGS: Song[] = [
