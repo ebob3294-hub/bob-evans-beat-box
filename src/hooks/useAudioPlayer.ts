@@ -12,6 +12,7 @@ function getAudio(): HTMLAudioElement {
   if (!globalAudio) {
     globalAudio = new Audio();
     globalAudio.preload = 'auto';
+    (window as any).__bobEvanAudio = globalAudio;
   }
   return globalAudio;
 }
