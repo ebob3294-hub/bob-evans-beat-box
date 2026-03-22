@@ -1,12 +1,20 @@
 import { usePlayerStore } from '@/store/playerStore';
 import { albumCovers } from './AlbumCovers';
-import { Play, Search, SlidersHorizontal, Music, FolderOpen, Plus } from 'lucide-react';
+import { Play, Pause, Search, Music, FolderOpen, Plus, Heart, Clock, ListMusic, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { scanDeviceMusic, pickMusicFiles } from '@/services/musicScanner';
+import { useState } from 'react';
+
+type LibraryTab = 'all' | 'recent' | 'liked' | 'playlists';
 
 const LibraryView = () => {
-  const { songs, currentSong, isPlaying, setCurrentSong, setActiveView, addSongs, setIsScanning } = usePlayerStore();
+  const { songs, currentSong, isPlaying, setCurrentSong, setActiveView, addSongs, setIsScanning, likedIds, toggleLike, playlists, createPlaylist, addToPlaylist, deletePlaylist, removeFromPlaylist } = usePlayerStore();
+  const [activeTab, setActiveTab] = useState<LibraryTab>('all');
+  const [showNewPlaylist, setShowNewPlaylist] = useState(false);
+  const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
+  const [addToPlaylistSong, setAddToPlaylistSong] = useState<string | null>(null);
 
   const handleAddMusic = async () => {
     setIsScanning(true);
@@ -23,92 +31,243 @@ const LibraryView = () => {
     }
   };
 
+  const tabs: { id: LibraryTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'all', label: 'All', icon: <Music className="w-3.5 h-3.5" /> },
+    { id: 'recent', label: 'Recent', icon: <Clock className="w-3.5 h-3.5" /> },
+    { id: 'liked', label: 'Liked', icon: <Heart className="w-3.5 h-3.5" /> },
+    { id: 'playlists', label: 'Playlists', icon: <ListMusic className="w-3.5 h-3.5" /> },
+  ];
+
+  const recentSongs = [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
+  const likedSongs = songs.filter((s) => likedIds.includes(s.id));
+
+  const getDisplaySongs = (): typeof songs => {
+    if (activeTab === 'recent') return recentSongs;
+    if (activeTab === 'liked') return likedSongs;
+    if (activeTab === 'playlists' && selectedPlaylist) {
+      return playlists.find((p) => p.name === selectedPlaylist)?.songs || [];
+    }
+    return songs;
+  };
+
+  const displaySongs = getDisplaySongs();
+
+  const handleCreatePlaylist = () => {
+    if (newPlaylistName.trim()) {
+      createPlaylist(newPlaylistName.trim());
+      setNewPlaylistName('');
+      setShowNewPlaylist(false);
+    }
+  };
+
+  const renderSongItem = (song: typeof songs[0], i: number) => (
+    <motion.div
+      key={song.id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ delay: Math.min(i * 0.02, 0.3) }}
+      className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
+        currentSong?.id === song.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-secondary'
+      }`}
+    >
+      <button onClick={() => setCurrentSong(song)} className="flex items-center gap-3 flex-1 min-w-0">
+        <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+          {albumCovers[song.coverIndex] ? (
+            <img src={albumCovers[song.coverIndex]} alt={song.album} className="w-12 h-12 rounded-md object-cover" />
+          ) : (
+            <Music className="w-5 h-5 text-primary" />
+          )}
+        </div>
+        <div className="flex-1 text-left min-w-0">
+          <p className={`text-sm font-medium truncate ${currentSong?.id === song.id ? 'text-primary' : 'text-foreground'}`}>
+            {song.title}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+        </div>
+      </button>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span className="text-[10px] text-muted-foreground">{song.duration}</span>
+        <button onClick={() => toggleLike(song.id)} className="p-1">
+          <Heart className={`w-4 h-4 ${likedIds.includes(song.id) ? 'fill-primary text-primary' : 'text-muted-foreground'}`} />
+        </button>
+        <button onClick={() => setAddToPlaylistSong(song.id)} className="p-1">
+          <Plus className="w-4 h-4 text-muted-foreground" />
+        </button>
+      </div>
+    </motion.div>
+  );
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-6 pb-4">
-        <div className="flex items-center gap-3">
-          <Music className="w-6 h-6 text-primary" />
-          <h1 className="text-2xl font-display font-bold tracking-tight">
+      <div className="flex items-center justify-between px-5 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <Music className="w-5 h-5 text-primary" />
+          <h1 className="text-xl font-display font-bold tracking-tight">
             <span className="text-primary">BOB</span>{' '}
             <span className="text-foreground">EVAN</span>
           </h1>
         </div>
-        <Search className="w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          <button onClick={handleAddMusic} className="p-2 bg-primary/10 rounded-lg">
+            <Plus className="w-4 h-4 text-primary" />
+          </button>
+        </div>
       </div>
 
-      {/* Title + Add button */}
-      <div className="flex items-center justify-between px-5 pb-3">
-        <h2 className="text-3xl font-display font-bold">My Music</h2>
-        <button
-          onClick={handleAddMusic}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-medium"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add
-        </button>
+      {/* Tabs */}
+      <div className="flex gap-1.5 px-5 pb-3 overflow-x-auto scrollbar-none">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id); setSelectedPlaylist(null); }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+            {tab.id === 'liked' && likedSongs.length > 0 && (
+              <span className="bg-primary-foreground/20 rounded-full px-1.5 text-[10px]">{likedSongs.length}</span>
+            )}
+          </button>
+        ))}
       </div>
 
-      {/* Song list or empty state */}
-      <div className="flex-1 overflow-y-auto px-3 pb-24">
-        {songs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <FolderOpen className="w-8 h-8 text-primary" />
-            </div>
-            <p className="text-sm font-medium text-foreground mb-1">No music yet</p>
-            <p className="text-xs text-muted-foreground mb-4">
-              Add music from your device to start listening
-            </p>
-            <button
-              onClick={handleAddMusic}
-              className="px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium"
-            >
-              {Capacitor.isNativePlatform() ? 'Scan Device' : 'Select Files'}
-            </button>
+      {/* Playlists list */}
+      {activeTab === 'playlists' && !selectedPlaylist && (
+        <div className="flex-1 overflow-y-auto px-4 pb-24">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-bold text-foreground">My Playlists</h3>
+            <button onClick={() => setShowNewPlaylist(true)} className="text-xs text-primary font-medium">+ New</button>
           </div>
-        ) : (
-          <AnimatePresence mode="popLayout">
-            {songs.map((song, i) => (
-              <motion.button
-                key={song.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ delay: i * 0.03 }}
-                onClick={() => setCurrentSong(song)}
-                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors ${
-                  currentSong?.id === song.id
-                    ? 'bg-primary/10 border border-primary/20'
-                    : 'hover:bg-secondary'
-                }`}
+
+          {showNewPlaylist && (
+            <div className="flex gap-2 mb-3">
+              <input
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+                placeholder="Playlist name..."
+                className="flex-1 px-3 py-2 bg-secondary rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                onKeyDown={(e) => e.key === 'Enter' && handleCreatePlaylist()}
+                autoFocus
+              />
+              <button onClick={handleCreatePlaylist} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm">
+                Add
+              </button>
+              <button onClick={() => setShowNewPlaylist(false)} className="px-2 py-2 text-muted-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {playlists.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <ListMusic className="w-12 h-12 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground">No playlists yet</p>
+              <button onClick={() => setShowNewPlaylist(true)} className="mt-3 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm">
+                Create Playlist
+              </button>
+            </div>
+          ) : (
+            playlists.map((pl) => (
+              <button
+                key={pl.name}
+                onClick={() => setSelectedPlaylist(pl.name)}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors mb-1"
               >
-                <div className="w-14 h-14 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden">
-                  {albumCovers[song.coverIndex] ? (
-                    <img
-                      src={albumCovers[song.coverIndex]}
-                      alt={song.album}
-                      className="w-14 h-14 rounded-md object-cover"
-                    />
-                  ) : (
-                    <Music className="w-6 h-6 text-primary" />
-                  )}
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <ListMusic className="w-6 h-6 text-primary" />
                 </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p className={`text-sm font-medium truncate ${currentSong?.id === song.id ? 'text-primary' : 'text-foreground'}`}>
-                    {song.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">{song.artist} • {song.album}</p>
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-medium text-foreground">{pl.name}</p>
+                  <p className="text-xs text-muted-foreground">{pl.songs.length} songs</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{song.duration}</span>
-                  <Play className={`w-4 h-4 ${currentSong?.id === song.id && isPlaying ? 'text-primary' : 'text-muted-foreground'}`} />
-                </div>
-              </motion.button>
-            ))}
-          </AnimatePresence>
-        )}
-      </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deletePlaylist(pl.name); }}
+                  className="p-1.5 text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Selected playlist header */}
+      {activeTab === 'playlists' && selectedPlaylist && (
+        <div className="flex items-center gap-2 px-5 pb-2">
+          <button onClick={() => setSelectedPlaylist(null)} className="text-xs text-primary">← Back</button>
+          <h3 className="text-lg font-bold text-foreground">{selectedPlaylist}</h3>
+          <span className="text-xs text-muted-foreground">({displaySongs.length})</span>
+        </div>
+      )}
+
+      {/* Song list */}
+      {(activeTab !== 'playlists' || selectedPlaylist) && (
+        <div className="flex-1 overflow-y-auto px-3 pb-24">
+          {displaySongs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center px-6">
+              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                {activeTab === 'liked' ? <Heart className="w-7 h-7 text-primary" /> : <FolderOpen className="w-7 h-7 text-primary" />}
+              </div>
+              <p className="text-sm font-medium text-foreground mb-1">
+                {activeTab === 'liked' ? 'No liked songs' : activeTab === 'recent' ? 'No recent songs' : selectedPlaylist ? 'Playlist is empty' : 'No music yet'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {activeTab === 'liked' ? 'Tap ♥ on songs you love' : 'Add music to get started'}
+              </p>
+            </div>
+          ) : (
+            <AnimatePresence mode="popLayout">
+              {displaySongs.map((song, i) => renderSongItem(song, i))}
+            </AnimatePresence>
+          )}
+        </div>
+      )}
+
+      {/* Add to playlist modal */}
+      {addToPlaylistSong && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-40 flex items-end justify-center" onClick={() => setAddToPlaylistSong(null)}>
+          <motion.div
+            initial={{ y: 200 }}
+            animate={{ y: 0 }}
+            className="w-full bg-card border-t border-border rounded-t-2xl p-5 max-h-[60%] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold mb-3">Add to Playlist</h3>
+            {playlists.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground mb-3">No playlists yet</p>
+                <button
+                  onClick={() => { setAddToPlaylistSong(null); setActiveTab('playlists'); setShowNewPlaylist(true); }}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm"
+                >
+                  Create One
+                </button>
+              </div>
+            ) : (
+              playlists.map((pl) => (
+                <button
+                  key={pl.name}
+                  onClick={() => {
+                    const song = songs.find((s) => s.id === addToPlaylistSong);
+                    if (song) addToPlaylist(pl.name, [song]);
+                    setAddToPlaylistSong(null);
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors"
+                >
+                  <ListMusic className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium">{pl.name}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">{pl.songs.length} songs</span>
+                </button>
+              ))
+            )}
+          </motion.div>
+        </div>
+      )}
 
       {/* Mini player */}
       {currentSong && (
@@ -120,11 +279,7 @@ const LibraryView = () => {
         >
           <div className={`w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ${isPlaying ? 'vinyl-spin' : ''}`}>
             {albumCovers[currentSong.coverIndex] ? (
-              <img
-                src={albumCovers[currentSong.coverIndex]}
-                alt={currentSong.album}
-                className="w-10 h-10 rounded-full object-cover"
-              />
+              <img src={albumCovers[currentSong.coverIndex]} alt={currentSong.album} className="w-10 h-10 rounded-full object-cover" />
             ) : (
               <Music className="w-5 h-5 text-primary" />
             )}
@@ -139,8 +294,11 @@ const LibraryView = () => {
             }}
             className="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
           >
-            <Play className={`w-4 h-4 text-primary-foreground ${isPlaying ? 'hidden' : ''}`} />
-            {isPlaying && <div className="w-2.5 h-2.5 border-2 border-primary-foreground rounded-sm" />}
+            {isPlaying ? (
+              <Pause className="w-4 h-4 text-primary-foreground" />
+            ) : (
+              <Play className="w-4 h-4 text-primary-foreground" />
+            )}
           </div>
         </motion.div>
       )}

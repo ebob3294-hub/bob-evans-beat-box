@@ -3,39 +3,36 @@ import { Music, Disc, FolderOpen, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { scanDeviceMusic, pickMusicFiles } from '@/services/musicScanner';
+import { useEffect } from 'react';
 
 const PermissionScreen = () => {
   const { setPermissionGranted, setIsScanning, addSongs } = usePlayerStore();
 
-  const handleScanDevice = async () => {
+  const handleGrantAndScan = async () => {
     setIsScanning(true);
     try {
-      const songs = await scanDeviceMusic();
-      if (songs.length > 0) {
-        addSongs(songs);
+      if (Capacitor.isNativePlatform()) {
+        const songs = await scanDeviceMusic();
+        if (songs.length > 0) addSongs(songs);
+      } else {
+        const songs = await pickMusicFiles();
+        if (songs.length > 0) addSongs(songs);
       }
       setPermissionGranted(true);
     } catch (err) {
-      console.error('Failed to scan device music:', err);
+      console.error('Failed to scan music:', err);
     } finally {
       setIsScanning(false);
     }
   };
 
-  const handlePickFiles = async () => {
-    setIsScanning(true);
-    try {
-      const songs = await pickMusicFiles();
-      if (songs.length > 0) {
-        addSongs(songs);
-      }
-      setPermissionGranted(true);
-    } catch (err) {
-      console.error('Failed to pick music files:', err);
-    } finally {
-      setIsScanning(false);
+  // Auto-scan on native platforms
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      handleGrantAndScan();
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isNative = Capacitor.isNativePlatform();
 
@@ -70,20 +67,14 @@ const PermissionScreen = () => {
         className="space-y-3 w-full max-w-[260px]"
       >
         <p className="text-sm text-muted-foreground mb-4">
-          Grant access to your music library to start listening
+          {isNative
+            ? 'Scanning your phone and SD card for music...'
+            : 'Grant access to your music library to start listening'}
         </p>
 
-        {isNative ? (
+        {!isNative && (
           <button
-            onClick={handleScanDevice}
-            className="w-full py-3 px-6 bg-primary text-primary-foreground rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-          >
-            <Music className="w-4 h-4" />
-            Scan My Music
-          </button>
-        ) : (
-          <button
-            onClick={handlePickFiles}
+            onClick={handleGrantAndScan}
             className="w-full py-3 px-6 bg-primary text-primary-foreground rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
           >
             <FolderOpen className="w-4 h-4" />
