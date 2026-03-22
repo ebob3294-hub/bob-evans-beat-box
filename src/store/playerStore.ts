@@ -10,6 +10,36 @@ export interface Song {
   coverIndex: number;
   category: string;
   filePath?: string;
+  addedAt?: number;
+}
+
+interface Playlist {
+  name: string;
+  songs: Song[];
+  createdAt: number;
+}
+
+const LIKED_KEY = 'bob-evan-liked';
+const PLAYLISTS_KEY = 'bob-evan-playlists';
+const PERMISSION_KEY = 'bob-evan-permission';
+
+function loadLiked(): string[] {
+  try { return JSON.parse(localStorage.getItem(LIKED_KEY) || '[]'); } catch { return []; }
+}
+function saveLiked(ids: string[]) {
+  localStorage.setItem(LIKED_KEY, JSON.stringify(ids));
+}
+function loadPlaylists(): Playlist[] {
+  try { return JSON.parse(localStorage.getItem(PLAYLISTS_KEY) || '[]'); } catch { return []; }
+}
+function savePlaylists(p: Playlist[]) {
+  localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(p));
+}
+function loadPermission(): boolean {
+  return localStorage.getItem(PERMISSION_KEY) === 'true';
+}
+function savePermission(v: boolean) {
+  localStorage.setItem(PERMISSION_KEY, String(v));
 }
 
 interface PlayerState {
@@ -23,7 +53,8 @@ interface PlayerState {
   activeCategory: string;
   activeView: 'library' | 'nowPlaying' | 'equalizer' | 'queue' | 'settings';
   equalizerBands: number[];
-  playlists: { name: string; songs: Song[] }[];
+  playlists: Playlist[];
+  likedIds: string[];
   bgColor: string;
   bgImage: string | null;
   permissionGranted: boolean;
@@ -44,7 +75,11 @@ interface PlayerState {
   nextSong: () => void;
   prevSong: () => void;
   addToPlaylist: (playlistName: string, songs: Song[]) => void;
+  removeFromPlaylist: (playlistName: string, songId: string) => void;
   createPlaylist: (name: string) => void;
+  deletePlaylist: (name: string) => void;
+  toggleLike: (songId: string) => void;
+  isLiked: (songId: string) => boolean;
   setBgColor: (color: string) => void;
   setBgImage: (url: string | null) => void;
   setPermissionGranted: (granted: boolean) => void;
@@ -64,8 +99,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   equalizerBands: [50, 60, 75, 80, 70, 55, 65, 72, 60, 50],
   bgColor: '',
   bgImage: null,
-  playlists: [],
-  permissionGranted: loadSongsMetadata().length > 0,
+  playlists: loadPlaylists(),
+  likedIds: loadLiked(),
+  permissionGranted: loadPermission(),
   isScanning: false,
 
   setSongs: (songs) => {
@@ -73,7 +109,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ songs });
   },
   addSongs: (newSongs) => set((s) => {
-    const updated = [...s.songs, ...newSongs.filter(ns => !s.songs.find(es => es.id === ns.id))];
+    const timestamp = Date.now();
+    const tagged = newSongs.map((ns, i) => ({ ...ns, addedAt: timestamp + i }));
+    const updated = [...s.songs, ...tagged.filter(ns => !s.songs.find(es => es.id === ns.id))];
     saveSongsMetadata(updated);
     return { songs: updated };
   }),
@@ -122,16 +160,43 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({ currentSong: prev, isPlaying: true });
     }
   },
-  addToPlaylist: (name, newSongs) => set((s) => ({
-    playlists: s.playlists.map((p) =>
+  addToPlaylist: (name, newSongs) => set((s) => {
+    const updated = s.playlists.map((p) =>
       p.name === name ? { ...p, songs: [...p.songs, ...newSongs.filter((ns) => !p.songs.find((ps) => ps.id === ns.id))] } : p
-    ),
-  })),
-  createPlaylist: (name) => set((s) => ({
-    playlists: [...s.playlists, { name, songs: [] }],
-  })),
+    );
+    savePlaylists(updated);
+    return { playlists: updated };
+  }),
+  removeFromPlaylist: (name, songId) => set((s) => {
+    const updated = s.playlists.map((p) =>
+      p.name === name ? { ...p, songs: p.songs.filter((ps) => ps.id !== songId) } : p
+    );
+    savePlaylists(updated);
+    return { playlists: updated };
+  }),
+  createPlaylist: (name) => set((s) => {
+    const updated = [...s.playlists, { name, songs: [], createdAt: Date.now() }];
+    savePlaylists(updated);
+    return { playlists: updated };
+  }),
+  deletePlaylist: (name) => set((s) => {
+    const updated = s.playlists.filter((p) => p.name !== name);
+    savePlaylists(updated);
+    return { playlists: updated };
+  }),
+  toggleLike: (songId) => set((s) => {
+    const liked = s.likedIds.includes(songId)
+      ? s.likedIds.filter((id) => id !== songId)
+      : [...s.likedIds, songId];
+    saveLiked(liked);
+    return { likedIds: liked };
+  }),
+  isLiked: (songId) => get().likedIds.includes(songId),
   setBgColor: (color) => set({ bgColor: color, bgImage: null }),
   setBgImage: (url) => set({ bgImage: url }),
-  setPermissionGranted: (granted) => set({ permissionGranted: granted }),
+  setPermissionGranted: (granted) => {
+    savePermission(granted);
+    set({ permissionGranted: granted });
+  },
   setIsScanning: (scanning) => set({ isScanning: scanning }),
 }));
