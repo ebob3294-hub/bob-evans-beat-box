@@ -52,7 +52,7 @@ interface PlayerState {
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  songs: [],
+  songs: loadSongsMetadata(),
   currentSong: null,
   isPlaying: false,
   shuffle: false,
