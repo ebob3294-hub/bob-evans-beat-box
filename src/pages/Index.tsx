@@ -19,6 +19,7 @@ const views = {
 
 const Index = () => {
   const { activeView, bgColor, bgImage, permissionGranted } = usePlayerStore();
+  useAudioPlayer(); // Mount global audio playback
   const ActiveComponent = views[activeView];
 
   const phoneStyle: React.CSSProperties = {};
