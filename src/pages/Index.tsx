@@ -7,6 +7,7 @@ import SettingsView from '@/components/player/SettingsView';
 import BottomNav from '@/components/player/BottomNav';
 import PermissionScreen, { ScanningOverlay } from '@/components/player/PermissionScreen';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 
 const views = {
   library: LibraryView,
@@ -18,6 +19,7 @@ const views = {
 
 const Index = () => {
   const { activeView, bgColor, bgImage, permissionGranted } = usePlayerStore();
+  useAudioPlayer(); // Mount global audio playback
   const ActiveComponent = views[activeView];
 
   const phoneStyle: React.CSSProperties = {};

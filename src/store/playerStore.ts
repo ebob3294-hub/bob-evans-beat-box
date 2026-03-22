@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { saveSongsMetadata, loadSongsMetadata } from '@/services/audioStorage';
 
 export interface Song {
   id: string;
@@ -51,7 +52,7 @@ interface PlayerState {
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
-  songs: [],
+  songs: loadSongsMetadata(),
   currentSong: null,
   isPlaying: false,
   shuffle: false,
@@ -64,13 +65,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   bgColor: '',
   bgImage: null,
   playlists: [],
-  permissionGranted: false,
+  permissionGranted: loadSongsMetadata().length > 0,
   isScanning: false,
 
-  setSongs: (songs) => set({ songs }),
-  addSongs: (newSongs) => set((s) => ({ 
-    songs: [...s.songs, ...newSongs.filter(ns => !s.songs.find(es => es.id === ns.id))] 
-  })),
+  setSongs: (songs) => {
+    saveSongsMetadata(songs);
+    set({ songs });
+  },
+  addSongs: (newSongs) => set((s) => {
+    const updated = [...s.songs, ...newSongs.filter(ns => !s.songs.find(es => es.id === ns.id))];
+    saveSongsMetadata(updated);
+    return { songs: updated };
+  }),
   setCurrentSong: (song) => set({ currentSong: song, isPlaying: true }),
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
   toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),

@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import type { Song } from '@/store/playerStore';
+import { saveAudioBlob } from './audioStorage';
 
 interface MediaStoreFile {
   id?: string;
@@ -11,10 +12,6 @@ interface MediaStoreFile {
   mimeType?: string;
 }
 
-/**
- * Scans the device for music files using the CapacitorMediaStore plugin (Android).
- * Falls back gracefully in web/browser environments.
- */
 export async function scanDeviceMusic(): Promise<Song[]> {
   if (!Capacitor.isNativePlatform()) {
     console.log('[MusicScanner] Not a native platform — skipping device scan.');
@@ -22,14 +19,10 @@ export async function scanDeviceMusic(): Promise<Song[]> {
   }
 
   try {
-    // Dynamically import to avoid errors on web
     const { CapacitorMediaStore } = await import('@odion-cloud/capacitor-mediastore');
-
-    // Request permission
     const permResult = await CapacitorMediaStore.requestPermissions();
     console.log('[MusicScanner] Permission result:', permResult);
 
-    // Get all audio files
     const result = await CapacitorMediaStore.getMediasByType({
       mediaType: 'audio' as any,
       limit: 500,
@@ -63,26 +56,54 @@ function formatDuration(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;
 }
 
-/**
- * For web fallback: let users pick files manually via file input
- */
+function getAudioDuration(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    const url = URL.createObjectURL(file);
+    audio.src = url;
+    audio.onloadedmetadata = () => {
+      const minutes = Math.floor(audio.duration / 60);
+      const seconds = Math.floor(audio.duration % 60);
+      URL.revokeObjectURL(url);
+      resolve(`${minutes}:${seconds.toString().padStart(2, '0')}`);
+    };
+    audio.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve('0:00');
+    };
+  });
+}
+
 export function pickMusicFiles(): Promise<Song[]> {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'audio/*';
     input.multiple = true;
-    input.onchange = () => {
+    input.onchange = async () => {
       const files = Array.from(input.files ?? []);
-      const songs: Song[] = files.map((file, i) => ({
-        id: `local-${Date.now()}-${i}`,
-        title: file.name.replace(/\.[^.]+$/, ''),
-        artist: 'Local File',
-        album: 'My Music',
-        duration: '0:00',
-        coverIndex: i % 5,
-        category: 'All',
-      }));
+      const songs: Song[] = [];
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const id = `local-${Date.now()}-${i}`;
+        const duration = await getAudioDuration(file);
+
+        // Save audio blob to IndexedDB for persistence
+        await saveAudioBlob(id, file);
+
+        songs.push({
+          id,
+          title: file.name.replace(/\.[^.]+$/, ''),
+          artist: 'Local File',
+          album: 'My Music',
+          duration,
+          coverIndex: i % 5,
+          category: 'All',
+        });
+      }
+
       resolve(songs);
     };
     input.oncancel = () => resolve([]);

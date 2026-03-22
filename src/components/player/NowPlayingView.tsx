@@ -2,19 +2,43 @@ import { usePlayerStore } from '@/store/playerStore';
 import { albumCovers } from './AlbumCovers';
 import { ChevronDown, SkipBack, SkipForward, Play, Pause, Shuffle, Repeat, Repeat1, Music, MoreVertical } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const NowPlayingView = () => {
-  const { currentSong, isPlaying, togglePlay, nextSong, prevSong, shuffle, toggleShuffle, repeat, cycleRepeat, setActiveView } = usePlayerStore();
-  const [progress, setProgress] = useState(0);
+  const { currentSong, isPlaying, togglePlay, nextSong, prevSong, shuffle, toggleShuffle, repeat, cycleRepeat, setActiveView, currentTime } = usePlayerStore();
+  const [duration, setDuration] = useState(0);
 
+  // Poll duration from the global audio element
   useEffect(() => {
-    if (!isPlaying) return;
     const interval = setInterval(() => {
-      setProgress((p) => (p >= 100 ? 0 : p + 0.5));
-    }, 200);
+      const audio = document.querySelector('audio') as HTMLAudioElement | null;
+      // Use the global audio singleton
+      if ((window as any).__bobEvanAudio) {
+        const d = (window as any).__bobEvanAudio.duration;
+        if (d && isFinite(d)) setDuration(d);
+      }
+    }, 500);
     return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [currentSong]);
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  const handleSeek = useCallback((e: React.MouseEvent<SVGElement>) => {
+    if (!duration) return;
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const x = e.clientX - rect.left - centerX;
+    const y = e.clientY - rect.top - centerY;
+    let angle = Math.atan2(x, -y); // angle from top
+    if (angle < 0) angle += 2 * Math.PI;
+    const pct = angle / (2 * Math.PI);
+    const newTime = pct * duration;
+    if ((window as any).__bobEvanAudio) {
+      (window as any).__bobEvanAudio.currentTime = newTime;
+    }
+  }, [duration]);
 
   if (!currentSong) {
     return (
@@ -32,11 +56,10 @@ const NowPlayingView = () => {
     );
   }
 
-  const durationParts = currentSong.duration.split(':');
-  const totalSeconds = parseInt(durationParts[0]) * 60 + parseInt(durationParts[1]);
-  const currentSeconds = Math.floor((progress / 100) * totalSeconds);
-  const currentMin = Math.floor(currentSeconds / 60);
-  const currentSec = currentSeconds % 60;
+  const currentMin = Math.floor(currentTime / 60);
+  const currentSec = Math.floor(currentTime % 60);
+  const totalMin = Math.floor(duration / 60);
+  const totalSec = Math.floor(duration % 60);
 
   return (
     <div className="flex flex-col h-full items-center">
@@ -52,8 +75,7 @@ const NowPlayingView = () => {
       {/* Vinyl disc */}
       <div className="flex-1 flex items-center justify-center">
         <div className="relative">
-          {/* Outer ring */}
-          <svg className="w-64 h-64" viewBox="0 0 200 200">
+          <svg className="w-64 h-64 cursor-pointer" viewBox="0 0 200 200" onClick={handleSeek}>
             <circle cx="100" cy="100" r="95" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
             <circle
               cx="100" cy="100" r="95"
@@ -66,7 +88,6 @@ const NowPlayingView = () => {
               className="transition-all duration-200"
             />
           </svg>
-          {/* Album art center */}
           <motion.div
             className={`absolute inset-8 rounded-full overflow-hidden border-4 border-secondary shadow-2xl ${isPlaying ? 'vinyl-spin' : ''}`}
           >
@@ -76,11 +97,9 @@ const NowPlayingView = () => {
               className="w-full h-full object-cover"
             />
           </motion.div>
-          {/* Center dot */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-4 h-4 rounded-full bg-primary glow-red" />
           </div>
-          {/* Progress indicator dot */}
           <div
             className="absolute w-3 h-3 rounded-full bg-primary glow-red"
             style={{
@@ -95,7 +114,7 @@ const NowPlayingView = () => {
       {/* Time */}
       <div className="flex justify-between w-full px-10 text-xs text-muted-foreground mb-2">
         <span>{currentMin}:{currentSec.toString().padStart(2, '0')}</span>
-        <span>{currentSong.duration}</span>
+        <span>{totalMin}:{totalSec.toString().padStart(2, '0')}</span>
       </div>
 
       {/* Controls row 1 */}
