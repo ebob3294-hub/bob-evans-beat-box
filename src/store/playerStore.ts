@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { saveSongsMetadata, loadSongsMetadata } from '@/services/audioStorage';
 
 export interface Song {
   id: string;
