@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { usePlayerStore } from '@/store/playerStore';
 import { getAudioBlob } from '@/services/audioStorage';
 
