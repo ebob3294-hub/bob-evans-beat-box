@@ -29,18 +29,24 @@ export async function scanDeviceMusic(): Promise<Song[]> {
       includeExternal: true,
     });
 
-    const files: MediaStoreFile[] = (result as any)?.media ?? (result as any)?.medias ?? [];
+    console.log('[MusicScanner] Raw result:', JSON.stringify(result).slice(0, 500));
 
-    const songs: Song[] = files.map((file, index) => ({
-      id: file.id ?? `device-${index}`,
-      title: file.title ?? 'Unknown Title',
-      artist: file.artist ?? 'Unknown Artist',
-      album: file.album ?? 'Unknown Album',
-      duration: formatDuration(file.duration ?? 0),
-      coverIndex: index % 5,
-      category: 'All',
-      filePath: file.path,
-    }));
+    const files: MediaStoreFile[] = (result as any)?.media ?? (result as any)?.medias ?? (result as any)?.files ?? [];
+    
+    console.log('[MusicScanner] Found', files.length, 'files. Sample:', JSON.stringify(files[0]));
+
+    const songs: Song[] = files
+      .filter(file => file.path) // only include files with valid paths
+      .map((file, index) => ({
+        id: file.id ?? `device-${index}-${file.path}`,
+        title: file.title ?? file.path?.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'Unknown Title',
+        artist: file.artist ?? 'Unknown Artist',
+        album: file.album ?? 'Unknown Album',
+        duration: formatDuration(file.duration ?? 0),
+        coverIndex: index % 5,
+        category: 'All',
+        filePath: file.path,
+      }));
 
     return songs;
   } catch (err) {

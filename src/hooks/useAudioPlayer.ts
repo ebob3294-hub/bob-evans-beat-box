@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { usePlayerStore } from '@/store/playerStore';
 import { getAudioBlob } from '@/services/audioStorage';
 
@@ -82,8 +83,10 @@ export function useAudioPlayer() {
         }
         audio.src = URL.createObjectURL(blob);
       } else if (currentSong.filePath) {
-        // Native file path (Capacitor)
-        audio.src = currentSong.filePath;
+        // Native file path — convert for WebView access
+        const convertedSrc = Capacitor.convertFileSrc(currentSong.filePath);
+        console.log('[AudioPlayer] Playing native file:', convertedSrc);
+        audio.src = convertedSrc;
       } else {
         console.warn('[AudioPlayer] No audio source for song:', currentSong.title);
         return;
