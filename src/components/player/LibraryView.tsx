@@ -15,6 +15,8 @@ const LibraryView = () => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
   const [addToPlaylistSong, setAddToPlaylistSong] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   const handleAddMusic = async () => {
     setIsScanning(true);
@@ -41,13 +43,19 @@ const LibraryView = () => {
   const recentSongs = [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
   const likedSongs = songs.filter((s) => likedIds.includes(s.id));
 
+  const filterBySearch = (list: typeof songs) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter(s => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q));
+  };
+
   const getDisplaySongs = (): typeof songs => {
-    if (activeTab === 'recent') return recentSongs;
-    if (activeTab === 'liked') return likedSongs;
+    if (activeTab === 'recent') return filterBySearch(recentSongs);
+    if (activeTab === 'liked') return filterBySearch(likedSongs);
     if (activeTab === 'playlists' && selectedPlaylist) {
-      return playlists.find((p) => p.name === selectedPlaylist)?.songs || [];
+      return filterBySearch(playlists.find((p) => p.name === selectedPlaylist)?.songs || []);
     }
-    return songs;
+    return filterBySearch(songs);
   };
 
   const displaySongs = getDisplaySongs();
@@ -110,11 +118,42 @@ const LibraryView = () => {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowSearch(!showSearch)} className="p-2 bg-primary/10 rounded-lg">
+            <Search className="w-4 h-4 text-primary" />
+          </button>
           <button onClick={handleAddMusic} className="p-2 bg-primary/10 rounded-lg">
             <Plus className="w-4 h-4 text-primary" />
           </button>
         </div>
       </div>
+
+      {/* Search bar */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden px-5"
+          >
+            <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2 mb-2">
+              <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or artist..."
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                autoFocus
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')}>
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs */}
       <div className="flex gap-1.5 px-5 pb-3 overflow-x-auto scrollbar-none">
