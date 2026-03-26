@@ -102,6 +102,9 @@ const LibraryView = () => {
         <button onClick={() => setAddToPlaylistSong(song.id)} className="p-1">
           <Plus className="w-4 h-4 text-muted-foreground" />
         </button>
+        <button onClick={() => removeSong(song.id)} className="p-1">
+          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+        </button>
       </div>
     </motion.div>
   );
