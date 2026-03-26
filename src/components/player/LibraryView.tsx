@@ -15,6 +15,8 @@ const LibraryView = () => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
   const [addToPlaylistSong, setAddToPlaylistSong] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   const handleAddMusic = async () => {
     setIsScanning(true);
