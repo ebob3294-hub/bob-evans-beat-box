@@ -118,11 +118,42 @@ const LibraryView = () => {
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={() => setShowSearch(!showSearch)} className="p-2 bg-primary/10 rounded-lg">
+            <Search className="w-4 h-4 text-primary" />
+          </button>
           <button onClick={handleAddMusic} className="p-2 bg-primary/10 rounded-lg">
             <Plus className="w-4 h-4 text-primary" />
           </button>
         </div>
       </div>
+
+      {/* Search bar */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden px-5"
+          >
+            <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2 mb-2">
+              <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or artist..."
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                autoFocus
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')}>
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs */}
       <div className="flex gap-1.5 px-5 pb-3 overflow-x-auto scrollbar-none">
