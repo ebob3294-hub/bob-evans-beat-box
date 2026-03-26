@@ -9,7 +9,7 @@ import { useState } from 'react';
 type LibraryTab = 'all' | 'recent' | 'liked' | 'playlists';
 
 const LibraryView = () => {
-  const { songs, currentSong, isPlaying, setCurrentSong, setActiveView, addSongs, setIsScanning, likedIds, toggleLike, playlists, createPlaylist, addToPlaylist, deletePlaylist, removeFromPlaylist } = usePlayerStore();
+  const { songs, currentSong, isPlaying, setCurrentSong, setActiveView, addSongs, setIsScanning, likedIds, toggleLike, playlists, createPlaylist, addToPlaylist, deletePlaylist, removeFromPlaylist, removeSong } = usePlayerStore();
   const [activeTab, setActiveTab] = useState<LibraryTab>('all');
   const [showNewPlaylist, setShowNewPlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
@@ -101,6 +101,9 @@ const LibraryView = () => {
         </button>
         <button onClick={() => setAddToPlaylistSong(song.id)} className="p-1">
           <Plus className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <button onClick={() => removeSong(song.id)} className="p-1">
+          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
         </button>
       </div>
     </motion.div>

@@ -84,6 +84,7 @@ interface PlayerState {
   setBgImage: (url: string | null) => void;
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
+  removeSong: (songId: string) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -199,4 +200,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ permissionGranted: granted });
   },
   setIsScanning: (scanning) => set({ isScanning: scanning }),
+  removeSong: (songId) => set((s) => {
+    const updated = s.songs.filter((song) => song.id !== songId);
+    saveSongsMetadata(updated);
+    const newState: Partial<PlayerState> = { songs: updated };
+    if (s.currentSong?.id === songId) {
+      newState.currentSong = null;
+      newState.isPlaying = false;
+    }
+    newState.queue = s.queue.filter((q) => q.id !== songId);
+    newState.likedIds = s.likedIds.filter((id) => id !== songId);
+    saveLiked(newState.likedIds as string[]);
+    const updatedPlaylists = s.playlists.map((p) => ({ ...p, songs: p.songs.filter((ps) => ps.id !== songId) }));
+    savePlaylists(updatedPlaylists);
+    newState.playlists = updatedPlaylists;
+    return newState;
+  }),
 }));
