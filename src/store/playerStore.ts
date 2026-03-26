@@ -84,6 +84,7 @@ interface PlayerState {
   setBgImage: (url: string | null) => void;
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
+  removeSong: (songId: string) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
