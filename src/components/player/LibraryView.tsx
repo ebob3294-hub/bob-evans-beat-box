@@ -43,6 +43,7 @@ const LibraryView = () => {
 
   const recentSongs = [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
   const likedSongs = songs.filter((s) => likedIds.includes(s.id));
+  const historySongs = history.map(h => h.song);
 
   const filterBySearch = (list: typeof songs) => {
     if (!searchQuery.trim()) return list;
