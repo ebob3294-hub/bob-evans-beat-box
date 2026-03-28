@@ -22,6 +22,12 @@ interface Playlist {
 const LIKED_KEY = 'bob-evan-liked';
 const PLAYLISTS_KEY = 'bob-evan-playlists';
 const PERMISSION_KEY = 'bob-evan-permission';
+const HISTORY_KEY = 'bob-evan-history';
+
+interface HistoryEntry {
+  song: Song;
+  playedAt: number;
+}
 
 function loadLiked(): string[] {
   try { return JSON.parse(localStorage.getItem(LIKED_KEY) || '[]'); } catch { return []; }
@@ -40,6 +46,12 @@ function loadPermission(): boolean {
 }
 function savePermission(v: boolean) {
   localStorage.setItem(PERMISSION_KEY, String(v));
+}
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+function saveHistory(h: HistoryEntry[]) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
 }
 
 interface PlayerState {
@@ -85,6 +97,8 @@ interface PlayerState {
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
   removeSong: (songId: string) => void;
+  history: HistoryEntry[];
+  clearHistory: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -104,6 +118,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   likedIds: loadLiked(),
   permissionGranted: loadPermission(),
   isScanning: false,
+  history: loadHistory(),
 
   setSongs: (songs) => {
     saveSongsMetadata(songs);
@@ -116,7 +131,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     saveSongsMetadata(updated);
     return { songs: updated };
   }),
-  setCurrentSong: (song) => set({ currentSong: song, isPlaying: true }),
+  setCurrentSong: (song) => set((s) => {
+    const entry: HistoryEntry = { song, playedAt: Date.now() };
+    const newHistory = [entry, ...s.history.filter(h => h.song.id !== song.id)].slice(0, 100);
+    saveHistory(newHistory);
+    return { currentSong: song, isPlaying: true, history: newHistory };
+  }),
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
   toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),
   cycleRepeat: () => set((s) => ({
@@ -216,4 +236,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     newState.playlists = updatedPlaylists;
     return newState;
   }),
+  clearHistory: () => {
+    saveHistory([]);
+    set({ history: [] });
+  },
 }));
