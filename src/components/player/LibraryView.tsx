@@ -250,19 +250,27 @@ const LibraryView = () => {
         </div>
       )}
 
+      {/* History header with clear */}
+      {activeTab === 'history' && history.length > 0 && (
+        <div className="flex items-center justify-between px-5 pb-2">
+          <h3 className="text-sm font-medium text-muted-foreground">Playback History</h3>
+          <button onClick={clearHistory} className="text-xs text-primary font-medium">Clear All</button>
+        </div>
+      )}
+
       {/* Song list */}
       {(activeTab !== 'playlists' || selectedPlaylist) && (
         <div className="flex-1 overflow-y-auto px-3 pb-24">
           {displaySongs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-6">
               <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                {activeTab === 'liked' ? <Heart className="w-7 h-7 text-primary" /> : <FolderOpen className="w-7 h-7 text-primary" />}
+                {activeTab === 'liked' ? <Heart className="w-7 h-7 text-primary" /> : activeTab === 'history' ? <History className="w-7 h-7 text-primary" /> : <FolderOpen className="w-7 h-7 text-primary" />}
               </div>
               <p className="text-sm font-medium text-foreground mb-1">
-                {activeTab === 'liked' ? 'No liked songs' : activeTab === 'recent' ? 'No recent songs' : selectedPlaylist ? 'Playlist is empty' : 'No music yet'}
+                {activeTab === 'liked' ? 'No liked songs' : activeTab === 'history' ? 'No history yet' : activeTab === 'recent' ? 'No recent songs' : selectedPlaylist ? 'Playlist is empty' : 'No music yet'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {activeTab === 'liked' ? 'Tap ♥ on songs you love' : 'Add music to get started'}
+                {activeTab === 'liked' ? 'Tap ♥ on songs you love' : activeTab === 'history' ? 'Songs you play will appear here' : 'Add music to get started'}
               </p>
             </div>
           ) : (
