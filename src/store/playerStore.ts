@@ -131,7 +131,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     saveSongsMetadata(updated);
     return { songs: updated };
   }),
-  setCurrentSong: (song) => set({ currentSong: song, isPlaying: true }),
+  setCurrentSong: (song) => set((s) => {
+    const entry: HistoryEntry = { song, playedAt: Date.now() };
+    const newHistory = [entry, ...s.history.filter(h => h.song.id !== song.id)].slice(0, 100);
+    saveHistory(newHistory);
+    return { currentSong: song, isPlaying: true, history: newHistory };
+  }),
   togglePlay: () => set((s) => ({ isPlaying: !s.isPlaying })),
   toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),
   cycleRepeat: () => set((s) => ({
