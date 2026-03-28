@@ -54,6 +54,7 @@ const LibraryView = () => {
   const getDisplaySongs = (): typeof songs => {
     if (activeTab === 'recent') return filterBySearch(recentSongs);
     if (activeTab === 'liked') return filterBySearch(likedSongs);
+    if (activeTab === 'history') return filterBySearch(historySongs);
     if (activeTab === 'playlists' && selectedPlaylist) {
       return filterBySearch(playlists.find((p) => p.name === selectedPlaylist)?.songs || []);
     }
