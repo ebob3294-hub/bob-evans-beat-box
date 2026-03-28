@@ -97,6 +97,8 @@ interface PlayerState {
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
   removeSong: (songId: string) => void;
+  history: HistoryEntry[];
+  clearHistory: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
