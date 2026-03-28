@@ -23,17 +23,29 @@ export async function scanDeviceMusic(): Promise<Song[]> {
     const permResult = await CapacitorMediaStore.requestPermissions();
     console.log('[MusicScanner] Permission result:', permResult);
 
+    // Scan both internal storage and SD card (external)
     const result = await CapacitorMediaStore.getMediasByType({
       mediaType: 'audio' as any,
-      limit: 500,
+      limit: 2000,
       includeExternal: true,
     });
 
-    console.log('[MusicScanner] Raw result:', JSON.stringify(result).slice(0, 500));
+    console.log('[MusicScanner] Raw result keys:', Object.keys(result));
 
-    const files: MediaStoreFile[] = (result as any)?.media ?? (result as any)?.medias ?? (result as any)?.files ?? [];
+    let files: MediaStoreFile[] = (result as any)?.media ?? (result as any)?.medias ?? (result as any)?.files ?? [];
     
-    console.log('[MusicScanner] Found', files.length, 'files. Sample:', JSON.stringify(files[0]));
+    // If result is an array directly
+    if (Array.isArray(result)) {
+      files = result;
+    }
+
+    console.log('[MusicScanner] Found', files.length, 'audio files');
+    if (files.length > 0) {
+      console.log('[MusicScanner] Sample file:', JSON.stringify(files[0]));
+      // Log paths to verify SD card inclusion
+      const paths = files.slice(0, 5).map(f => f.path);
+      console.log('[MusicScanner] Sample paths:', paths);
+    }
 
     const songs: Song[] = files
       .filter(file => file.path) // only include files with valid paths
