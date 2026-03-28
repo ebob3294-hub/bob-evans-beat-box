@@ -47,6 +47,12 @@ function loadPermission(): boolean {
 function savePermission(v: boolean) {
   localStorage.setItem(PERMISSION_KEY, String(v));
 }
+function loadHistory(): HistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+function saveHistory(h: HistoryEntry[]) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+}
 
 interface PlayerState {
   songs: Song[];
