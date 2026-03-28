@@ -31,8 +31,13 @@ export async function scanDeviceMusic(): Promise<Song[]> {
 
   try {
     const { CapacitorMediaStore } = await import('@odion-cloud/capacitor-mediastore');
+    
+    // Request permissions — handles READ_MEDIA_AUDIO (Android 13+) and READ_EXTERNAL_STORAGE (older)
     const permResult = await CapacitorMediaStore.requestPermissions();
-    console.log('[MusicScanner] Permission result:', permResult);
+    console.log('[MusicScanner] Permission result:', JSON.stringify(permResult));
+
+    const sdkVersion = await getAndroidSdkVersion();
+    console.log('[MusicScanner] Android SDK version:', sdkVersion);
 
     // Scan both internal storage and SD card (external)
     const result = await CapacitorMediaStore.getMediasByType({
