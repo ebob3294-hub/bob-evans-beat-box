@@ -236,4 +236,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     newState.playlists = updatedPlaylists;
     return newState;
   }),
+  clearHistory: () => {
+    saveHistory([]);
+    set({ history: [] });
+  },
 }));
