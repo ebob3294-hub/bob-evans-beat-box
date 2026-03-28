@@ -13,7 +13,7 @@ const BottomNav = () => {
   const { activeView, setActiveView } = usePlayerStore();
 
   return (
-    <nav className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border flex justify-around py-2">
+    <nav className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border flex justify-around py-2" style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }}>
       {tabs.map(({ id, icon: Icon, label }) => (
         <button
           key={id}
