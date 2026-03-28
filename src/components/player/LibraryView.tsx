@@ -6,7 +6,7 @@ import { Capacitor } from '@capacitor/core';
 import { scanDeviceMusic, pickMusicFiles } from '@/services/musicScanner';
 import { useState } from 'react';
 
-type LibraryTab = 'all' | 'recent' | 'liked' | 'playlists';
+type LibraryTab = 'all' | 'recent' | 'liked' | 'history' | 'playlists';
 
 const LibraryView = () => {
   const { songs, currentSong, isPlaying, setCurrentSong, setActiveView, addSongs, setIsScanning, likedIds, toggleLike, playlists, createPlaylist, addToPlaylist, deletePlaylist, removeFromPlaylist, removeSong } = usePlayerStore();
