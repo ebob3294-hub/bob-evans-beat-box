@@ -37,6 +37,7 @@ const LibraryView = () => {
     { id: 'all', label: 'All', icon: <Music className="w-3.5 h-3.5" /> },
     { id: 'recent', label: 'Recent', icon: <Clock className="w-3.5 h-3.5" /> },
     { id: 'liked', label: 'Liked', icon: <Heart className="w-3.5 h-3.5" /> },
+    { id: 'history', label: 'History', icon: <History className="w-3.5 h-3.5" /> },
     { id: 'playlists', label: 'Playlists', icon: <ListMusic className="w-3.5 h-3.5" /> },
   ];
 
