@@ -118,6 +118,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   likedIds: loadLiked(),
   permissionGranted: loadPermission(),
   isScanning: false,
+  history: loadHistory(),
 
   setSongs: (songs) => {
     saveSongsMetadata(songs);
