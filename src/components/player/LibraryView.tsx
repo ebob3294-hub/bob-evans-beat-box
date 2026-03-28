@@ -1,6 +1,6 @@
 import { usePlayerStore } from '@/store/playerStore';
 import { albumCovers } from './AlbumCovers';
-import { Play, Pause, Search, Music, FolderOpen, Plus, Heart, Clock, ListMusic, Trash2, X } from 'lucide-react';
+import { Play, Pause, Search, Music, FolderOpen, Plus, Heart, Clock, ListMusic, Trash2, X, History } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { scanDeviceMusic, pickMusicFiles } from '@/services/musicScanner';
