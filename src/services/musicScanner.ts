@@ -2,6 +2,17 @@ import { Capacitor } from '@capacitor/core';
 import type { Song } from '@/store/playerStore';
 import { saveAudioBlob } from './audioStorage';
 
+// Helper to check Android SDK version
+async function getAndroidSdkVersion(): Promise<number> {
+  try {
+    const { Device } = await import('@capacitor/device');
+    const info = await Device.getInfo();
+    return parseInt(info.osVersion, 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
 interface MediaStoreFile {
   id?: string;
   title?: string;
