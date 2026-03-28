@@ -71,8 +71,6 @@ interface PlayerState {
   bgImage: string | null;
   permissionGranted: boolean;
   isScanning: boolean;
-  history: HistoryEntry[];
-  isScanning: boolean;
 
   setSongs: (songs: Song[]) => void;
   addSongs: (songs: Song[]) => void;
