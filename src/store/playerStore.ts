@@ -22,6 +22,12 @@ interface Playlist {
 const LIKED_KEY = 'bob-evan-liked';
 const PLAYLISTS_KEY = 'bob-evan-playlists';
 const PERMISSION_KEY = 'bob-evan-permission';
+const HISTORY_KEY = 'bob-evan-history';
+
+interface HistoryEntry {
+  song: Song;
+  playedAt: number;
+}
 
 function loadLiked(): string[] {
   try { return JSON.parse(localStorage.getItem(LIKED_KEY) || '[]'); } catch { return []; }
