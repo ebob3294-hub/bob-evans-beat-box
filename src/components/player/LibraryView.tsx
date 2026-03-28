@@ -9,7 +9,7 @@ import { useState } from 'react';
 type LibraryTab = 'all' | 'recent' | 'liked' | 'history' | 'playlists';
 
 const LibraryView = () => {
-  const { songs, currentSong, isPlaying, setCurrentSong, setActiveView, addSongs, setIsScanning, likedIds, toggleLike, playlists, createPlaylist, addToPlaylist, deletePlaylist, removeFromPlaylist, removeSong } = usePlayerStore();
+  const { songs, currentSong, isPlaying, setCurrentSong, setActiveView, addSongs, setIsScanning, likedIds, toggleLike, playlists, createPlaylist, addToPlaylist, deletePlaylist, removeFromPlaylist, removeSong, history, clearHistory } = usePlayerStore();
   const [activeTab, setActiveTab] = useState<LibraryTab>('all');
   const [showNewPlaylist, setShowNewPlaylist] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
