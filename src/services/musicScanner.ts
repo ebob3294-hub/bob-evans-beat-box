@@ -31,13 +31,26 @@ export async function scanDeviceMusic(): Promise<Song[]> {
 
   try {
     const { CapacitorMediaStore } = await import('@odion-cloud/capacitor-mediastore');
-    
-    // Request permissions — handles READ_MEDIA_AUDIO (Android 13+) and READ_EXTERNAL_STORAGE (older)
-    const permResult = await CapacitorMediaStore.requestPermissions();
-    console.log('[MusicScanner] Permission result:', JSON.stringify(permResult));
 
     const sdkVersion = await getAndroidSdkVersion();
     console.log('[MusicScanner] Android SDK version:', sdkVersion);
+
+    // Request permissions — handles READ_MEDIA_AUDIO (Android 13+) and READ_EXTERNAL_STORAGE (older)
+    let permResult: any = await CapacitorMediaStore.requestPermissions();
+    console.log('[MusicScanner] Permission result:', JSON.stringify(permResult));
+
+    // Check if permission was actually granted
+    const granted = permResult?.granted === true ||
+                    permResult?.status === 'granted' ||
+                    permResult?.readMediaAudio === 'granted' ||
+                    permResult?.publicStorage === 'granted';
+
+    if (!granted) {
+      console.warn('[MusicScanner] Permission NOT granted. User must enable it manually in Settings → Apps → Bob Evan → Permissions → Music and audio');
+      // Try one more time
+      permResult = await CapacitorMediaStore.requestPermissions();
+      console.log('[MusicScanner] Second permission attempt:', JSON.stringify(permResult));
+    }
 
     // Scan both internal storage and SD card (external)
     const result = await CapacitorMediaStore.getMediasByType({
