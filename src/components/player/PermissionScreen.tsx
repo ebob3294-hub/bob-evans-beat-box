@@ -1,20 +1,30 @@
 import { usePlayerStore } from '@/store/playerStore';
-import { Music, Disc, FolderOpen, Loader2 } from 'lucide-react';
+import { Disc, FolderOpen, Loader2, Settings, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
-import { scanDeviceMusic, pickMusicFiles } from '@/services/musicScanner';
-import { useEffect } from 'react';
+import { scanDeviceMusic, pickMusicFiles, openAppSettings } from '@/services/musicScanner';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const PermissionScreen = () => {
   const { setPermissionGranted, setIsScanning, addSongs } = usePlayerStore();
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [hasTriedScan, setHasTriedScan] = useState(false);
 
   const handleGrantAndScan = async () => {
     setIsScanning(true);
+    setPermissionDenied(false);
     try {
       if (Capacitor.isNativePlatform()) {
         const songs = await scanDeviceMusic();
-        if (songs.length > 0) addSongs(songs);
-        setPermissionGranted(true);
+        if (songs.length > 0) {
+          addSongs(songs);
+          toast.success(`Found ${songs.length} songs`);
+          setPermissionGranted(true);
+        } else {
+          toast.info('No music found on device');
+          setPermissionGranted(true);
+        }
       } else {
         const songs = await pickMusicFiles();
         if (songs.length > 0) addSongs(songs);
@@ -22,8 +32,15 @@ const PermissionScreen = () => {
       }
     } catch (err) {
       console.error('Failed to scan music:', err);
+      if (err instanceof Error && err.message === 'MUSIC_PERMISSION_DENIED') {
+        setPermissionDenied(true);
+        toast.error('Music permission denied. Please enable it in settings.');
+      } else {
+        toast.error('Failed to scan music');
+      }
     } finally {
       setIsScanning(false);
+      setHasTriedScan(true);
     }
   };
 
@@ -65,29 +82,73 @@ const PermissionScreen = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="space-y-3 w-full max-w-[260px]"
+        className="space-y-3 w-full max-w-[280px]"
       >
-        <p className="text-sm text-muted-foreground mb-4">
-          {isNative
-            ? 'Scanning your phone and SD card for music...'
-            : 'Grant access to your music library to start listening'}
-        </p>
+        {permissionDenied ? (
+          <>
+            <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-left">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-destructive mb-1">Permission Required</p>
+                <p className="text-xs text-muted-foreground">
+                  Enable <strong>Music and audio</strong> permission in app settings to scan your library.
+                </p>
+              </div>
+            </div>
 
-        {!isNative && (
-          <button
-            onClick={handleGrantAndScan}
-            className="w-full py-3 px-6 bg-primary text-primary-foreground rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-          >
-            <FolderOpen className="w-4 h-4" />
-            Select Music Files
-          </button>
+            <button
+              onClick={openAppSettings}
+              className="w-full py-3 px-6 bg-primary text-primary-foreground rounded-xl font-medium text-sm flex items-center justify-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              Open App Settings
+            </button>
+
+            <button
+              onClick={handleGrantAndScan}
+              className="w-full py-3 px-6 bg-secondary text-secondary-foreground rounded-xl font-medium text-sm flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-muted-foreground mb-4">
+              {isNative
+                ? hasTriedScan
+                  ? 'Tap below to scan again'
+                  : 'Scanning your phone and SD card for music...'
+                : 'Grant access to your music library to start listening'}
+            </p>
+
+            {!isNative && (
+              <button
+                onClick={handleGrantAndScan}
+                className="w-full py-3 px-6 bg-primary text-primary-foreground rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <FolderOpen className="w-4 h-4" />
+                Select Music Files
+              </button>
+            )}
+
+            {isNative && hasTriedScan && (
+              <button
+                onClick={handleGrantAndScan}
+                className="w-full py-3 px-6 bg-primary text-primary-foreground rounded-xl font-medium text-sm flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Rescan Music
+              </button>
+            )}
+          </>
         )}
 
         <button
           onClick={() => setPermissionGranted(true)}
           className="w-full py-3 px-6 bg-secondary text-secondary-foreground rounded-xl font-medium text-sm hover:opacity-90 transition-opacity"
         >
-          Skip for Now
+          Continue Anyway
         </button>
       </motion.div>
 
