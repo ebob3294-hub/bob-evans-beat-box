@@ -145,6 +145,16 @@ const LibraryView = () => {
             <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2 mb-2">
               <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <input
+                type="search"
+                inputMode="search"
+                name="library-search"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or artist..."
@@ -191,6 +201,16 @@ const LibraryView = () => {
           {showNewPlaylist && (
             <div className="flex gap-2 mb-3">
               <input
+                type="text"
+                inputMode="text"
+                name="playlist-name"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="words"
+                spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
                 placeholder="Playlist name..."
