@@ -2,6 +2,25 @@ import { Capacitor } from '@capacitor/core';
 import type { Song } from '@/store/playerStore';
 import { saveAudioBlob } from './audioStorage';
 
+type PermissionState = 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale';
+
+interface MediaPermissionStatus {
+  readExternalStorage?: PermissionState;
+  readMediaAudio?: PermissionState;
+}
+
+interface MediaStorePlugin {
+  checkPermissions?: () => Promise<MediaPermissionStatus>;
+  requestPermissions: (options?: { types?: string[] }) => Promise<MediaPermissionStatus>;
+  getMediasByType: (options: {
+    mediaType: 'audio';
+    limit?: number;
+    sortBy?: 'DATE_ADDED' | 'DATE_MODIFIED' | 'DISPLAY_NAME' | 'SIZE' | 'TITLE';
+    sortOrder?: 'ASC' | 'DESC';
+    includeExternal?: boolean;
+  }) => Promise<{ media?: MediaStoreFile[] } | MediaStoreFile[]>;
+}
+
 // Helper to check Android SDK version
 async function getAndroidSdkVersion(): Promise<number> {
   try {
@@ -20,7 +39,59 @@ interface MediaStoreFile {
   album?: string;
   duration?: number;
   path?: string;
+  uri?: string;
+  displayName?: string;
   mimeType?: string;
+  isExternal?: boolean;
+}
+
+function hasAudioPermission(status: MediaPermissionStatus | null | undefined, sdkVersion: number): boolean {
+  if (!status) return false;
+  if (sdkVersion >= 33) {
+    return status.readMediaAudio === 'granted';
+  }
+  return status.readExternalStorage === 'granted';
+}
+
+async function ensureAudioPermission(plugin: MediaStorePlugin, sdkVersion: number): Promise<boolean> {
+  const currentStatus = await plugin.checkPermissions?.();
+  if (hasAudioPermission(currentStatus, sdkVersion)) {
+    return true;
+  }
+
+  const requestStatus = await plugin.requestPermissions({ types: ['audio'] });
+  if (hasAudioPermission(requestStatus, sdkVersion)) {
+    return true;
+  }
+
+  const finalStatus = await plugin.checkPermissions?.();
+  return hasAudioPermission(finalStatus, sdkVersion);
+}
+
+function stripExtension(value: string): string {
+  return value.replace(/\.[^.]+$/, '');
+}
+
+function getSongSource(file: MediaStoreFile): string | undefined {
+  return file.path ?? file.uri;
+}
+
+function mapMediaFileToSong(file: MediaStoreFile, index: number): Song | null {
+  const source = getSongSource(file);
+  if (!source) return null;
+
+  const fallbackName = source.split('/').pop()?.split('?')[0] ?? 'Unknown Title';
+
+  return {
+    id: file.id ?? source ?? `device-${index}`,
+    title: stripExtension(file.title ?? file.displayName ?? fallbackName),
+    artist: file.artist ?? 'Unknown Artist',
+    album: file.album ?? 'Unknown Album',
+    duration: formatDuration(file.duration ?? 0),
+    coverIndex: index % 5,
+    category: 'All',
+    filePath: source,
+  };
 }
 
 export async function scanDeviceMusic(): Promise<Song[]> {
@@ -31,39 +102,30 @@ export async function scanDeviceMusic(): Promise<Song[]> {
 
   try {
     const { CapacitorMediaStore } = await import('@odion-cloud/capacitor-mediastore');
+    const mediaStore = CapacitorMediaStore as MediaStorePlugin;
 
     const sdkVersion = await getAndroidSdkVersion();
     console.log('[MusicScanner] Android SDK version:', sdkVersion);
 
-    // Request permissions — handles READ_MEDIA_AUDIO (Android 13+) and READ_EXTERNAL_STORAGE (older)
-    let permResult: any = await CapacitorMediaStore.requestPermissions();
-    console.log('[MusicScanner] Permission result:', JSON.stringify(permResult));
-
-    // Check if permission was actually granted
-    const granted = permResult?.granted === true ||
-                    permResult?.status === 'granted' ||
-                    permResult?.readMediaAudio === 'granted' ||
-                    permResult?.publicStorage === 'granted';
+    const granted = await ensureAudioPermission(mediaStore, sdkVersion);
+    console.log('[MusicScanner] Audio permission granted:', granted);
 
     if (!granted) {
-      console.warn('[MusicScanner] Permission NOT granted. User must enable it manually in Settings → Apps → Bob Evan → Permissions → Music and audio');
-      // Try one more time
-      permResult = await CapacitorMediaStore.requestPermissions();
-      console.log('[MusicScanner] Second permission attempt:', JSON.stringify(permResult));
+      console.warn('[MusicScanner] Audio permission denied. User must enable it manually in app settings.');
+      throw new Error('MUSIC_PERMISSION_DENIED');
     }
 
-    // Scan both internal storage and SD card (external)
-    const result = await CapacitorMediaStore.getMediasByType({
-      mediaType: 'audio' as any,
-      limit: 2000,
+    const result = await mediaStore.getMediasByType({
+      mediaType: 'audio',
+      limit: 5000,
+      sortBy: 'TITLE',
+      sortOrder: 'ASC',
       includeExternal: true,
     });
 
     console.log('[MusicScanner] Raw result keys:', Object.keys(result));
 
     let files: MediaStoreFile[] = (result as any)?.media ?? (result as any)?.medias ?? (result as any)?.files ?? [];
-    
-    // If result is an array directly
     if (Array.isArray(result)) {
       files = result;
     }
@@ -71,26 +133,24 @@ export async function scanDeviceMusic(): Promise<Song[]> {
     console.log('[MusicScanner] Found', files.length, 'audio files');
     if (files.length > 0) {
       console.log('[MusicScanner] Sample file:', JSON.stringify(files[0]));
-      // Log paths to verify SD card inclusion
-      const paths = files.slice(0, 5).map(f => f.path);
-      console.log('[MusicScanner] Sample paths:', paths);
+      console.log('[MusicScanner] Sample sources:', files.slice(0, 5).map((file) => getSongSource(file)));
     }
 
-    const songs: Song[] = files
-      .filter(file => file.path) // only include files with valid paths
-      .map((file, index) => ({
-        id: file.id ?? `device-${index}-${file.path}`,
-        title: file.title ?? file.path?.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'Unknown Title',
-        artist: file.artist ?? 'Unknown Artist',
-        album: file.album ?? 'Unknown Album',
-        duration: formatDuration(file.duration ?? 0),
-        coverIndex: index % 5,
-        category: 'All',
-        filePath: file.path,
-      }));
+    const songs = files
+      .map(mapMediaFileToSong)
+      .filter((song): song is Song => Boolean(song));
 
-    return songs;
+    const uniqueSongs = songs.filter((song, index, array) =>
+      array.findIndex((candidate) => candidate.filePath === song.filePath) === index,
+    );
+
+    console.log('[MusicScanner] Imported songs:', uniqueSongs.length);
+
+    return uniqueSongs;
   } catch (err) {
+    if (err instanceof Error && err.message === 'MUSIC_PERMISSION_DENIED') {
+      throw err;
+    }
     console.error('[MusicScanner] Error scanning music:', err);
     return [];
   }

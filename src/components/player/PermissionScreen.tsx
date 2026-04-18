@@ -14,11 +14,12 @@ const PermissionScreen = () => {
       if (Capacitor.isNativePlatform()) {
         const songs = await scanDeviceMusic();
         if (songs.length > 0) addSongs(songs);
+        setPermissionGranted(true);
       } else {
         const songs = await pickMusicFiles();
         if (songs.length > 0) addSongs(songs);
+        setPermissionGranted(true);
       }
-      setPermissionGranted(true);
     } catch (err) {
       console.error('Failed to scan music:', err);
     } finally {
