@@ -7,11 +7,13 @@ type PermissionState = 'granted' | 'denied' | 'prompt' | 'prompt-with-rationale'
 interface MediaPermissionStatus {
   readExternalStorage?: PermissionState;
   readMediaAudio?: PermissionState;
+  publicStorage?: PermissionState;
+  status?: PermissionState;
 }
 
 interface MediaStorePlugin {
   checkPermissions?: () => Promise<MediaPermissionStatus>;
-  requestPermissions: (options?: { types?: string[] }) => Promise<MediaPermissionStatus>;
+  requestPermissions: (options?: { types?: string[]; permissions?: string[] }) => Promise<MediaPermissionStatus>;
   getMediasByType: (options: {
     mediaType: 'audio';
     limit?: number;
@@ -45,27 +47,56 @@ interface MediaStoreFile {
   isExternal?: boolean;
 }
 
-function hasAudioPermission(status: MediaPermissionStatus | null | undefined, sdkVersion: number): boolean {
-  if (!status) return false;
-  if (sdkVersion >= 33) {
-    return status.readMediaAudio === 'granted';
-  }
-  return status.readExternalStorage === 'granted';
+function isGranted(value: PermissionState | undefined): boolean {
+  return value === 'granted';
 }
 
-async function ensureAudioPermission(plugin: MediaStorePlugin, sdkVersion: number): Promise<boolean> {
-  const currentStatus = await plugin.checkPermissions?.();
-  if (hasAudioPermission(currentStatus, sdkVersion)) {
-    return true;
+function hasAudioPermission(status: MediaPermissionStatus | null | undefined): boolean {
+  if (!status) return false;
+  // Accept any "granted" signal across plugin versions / Android versions
+  return (
+    isGranted(status.readMediaAudio) ||
+    isGranted(status.readExternalStorage) ||
+    isGranted(status.publicStorage) ||
+    isGranted(status.status)
+  );
+}
+
+async function ensureAudioPermission(plugin: MediaStorePlugin): Promise<boolean> {
+  try {
+    const currentStatus = await plugin.checkPermissions?.();
+    console.log('[MusicScanner] Current permissions:', JSON.stringify(currentStatus));
+    if (hasAudioPermission(currentStatus)) {
+      return true;
+    }
+  } catch (e) {
+    console.warn('[MusicScanner] checkPermissions failed:', e);
   }
 
-  const requestStatus = await plugin.requestPermissions({ types: ['audio'] });
-  if (hasAudioPermission(requestStatus, sdkVersion)) {
-    return true;
+  try {
+    const requestStatus = await plugin.requestPermissions({ types: ['audio'] });
+    console.log('[MusicScanner] After request:', JSON.stringify(requestStatus));
+    if (hasAudioPermission(requestStatus)) {
+      return true;
+    }
+  } catch (e) {
+    console.warn('[MusicScanner] requestPermissions(audio) failed, retrying with no args:', e);
+    try {
+      const fallback = await plugin.requestPermissions();
+      console.log('[MusicScanner] Fallback request:', JSON.stringify(fallback));
+      if (hasAudioPermission(fallback)) return true;
+    } catch (err) {
+      console.error('[MusicScanner] Fallback requestPermissions failed:', err);
+    }
   }
 
-  const finalStatus = await plugin.checkPermissions?.();
-  return hasAudioPermission(finalStatus, sdkVersion);
+  // Final check
+  try {
+    const finalStatus = await plugin.checkPermissions?.();
+    return hasAudioPermission(finalStatus);
+  } catch {
+    return false;
+  }
 }
 
 function stripExtension(value: string): string {
@@ -94,6 +125,15 @@ function mapMediaFileToSong(file: MediaStoreFile, index: number): Song | null {
   };
 }
 
+export async function openAppSettings(): Promise<void> {
+  try {
+    const { NativeSettings, AndroidSettings } = await import('capacitor-native-settings');
+    await NativeSettings.openAndroid({ option: AndroidSettings.ApplicationDetails });
+  } catch (err) {
+    console.error('[MusicScanner] Failed to open app settings:', err);
+  }
+}
+
 export async function scanDeviceMusic(): Promise<Song[]> {
   if (!Capacitor.isNativePlatform()) {
     console.log('[MusicScanner] Not a native platform — skipping device scan.');
@@ -105,13 +145,13 @@ export async function scanDeviceMusic(): Promise<Song[]> {
     const mediaStore = CapacitorMediaStore as MediaStorePlugin;
 
     const sdkVersion = await getAndroidSdkVersion();
-    console.log('[MusicScanner] Android SDK version:', sdkVersion);
+    console.log('[MusicScanner] Android version:', sdkVersion);
 
-    const granted = await ensureAudioPermission(mediaStore, sdkVersion);
+    const granted = await ensureAudioPermission(mediaStore);
     console.log('[MusicScanner] Audio permission granted:', granted);
 
     if (!granted) {
-      console.warn('[MusicScanner] Audio permission denied. User must enable it manually in app settings.');
+      console.warn('[MusicScanner] ⚠️ Audio permission denied. The "Music and audio" permission may not be declared in AndroidManifest.xml. See ANDROID_PERMISSIONS_FIX.md');
       throw new Error('MUSIC_PERMISSION_DENIED');
     }
 
@@ -123,8 +163,6 @@ export async function scanDeviceMusic(): Promise<Song[]> {
       includeExternal: true,
     });
 
-    console.log('[MusicScanner] Raw result keys:', Object.keys(result));
-
     let files: MediaStoreFile[] = (result as any)?.media ?? (result as any)?.medias ?? (result as any)?.files ?? [];
     if (Array.isArray(result)) {
       files = result;
@@ -133,7 +171,6 @@ export async function scanDeviceMusic(): Promise<Song[]> {
     console.log('[MusicScanner] Found', files.length, 'audio files');
     if (files.length > 0) {
       console.log('[MusicScanner] Sample file:', JSON.stringify(files[0]));
-      console.log('[MusicScanner] Sample sources:', files.slice(0, 5).map((file) => getSongSource(file)));
     }
 
     const songs = files
@@ -145,7 +182,6 @@ export async function scanDeviceMusic(): Promise<Song[]> {
     );
 
     console.log('[MusicScanner] Imported songs:', uniqueSongs.length);
-
     return uniqueSongs;
   } catch (err) {
     if (err instanceof Error && err.message === 'MUSIC_PERMISSION_DENIED') {
@@ -197,7 +233,6 @@ export function pickMusicFiles(): Promise<Song[]> {
         const id = `local-${Date.now()}-${i}`;
         const duration = await getAudioDuration(file);
 
-        // Save audio blob to IndexedDB for persistence
         await saveAudioBlob(id, file);
 
         songs.push({
