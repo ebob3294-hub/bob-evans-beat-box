@@ -23,9 +23,28 @@ export function useAudioPlayer() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const filtersRef = useRef<BiquadFilterNode[]>([]);
+  const preGainRef = useRef<GainNode | null>(null);
+  const compressorRef = useRef<DynamicsCompressorNode | null>(null);
+  const postGainRef = useRef<GainNode | null>(null);
   const currentSongIdRef = useRef<string | null>(null);
 
-  // Setup equalizer
+  // Convert slider value (0-100, 50 = neutral) to dB gain.
+  // Reduced from ±20 dB to ±8 dB to avoid distortion/clipping.
+  const sliderToDb = (val: number) => ((val ?? 50) - 50) * 0.16;
+
+  // Sum of positive EQ gains determines how much we need to attenuate
+  // the pre-gain to keep the signal from clipping.
+  const computePreGain = (bands: number[]) => {
+    const maxBoostDb = Math.max(
+      0,
+      ...bands.map((b) => sliderToDb(b))
+    );
+    // Headroom: drop input by the largest boost so peaks stay below 0 dBFS
+    const linear = Math.pow(10, -maxBoostDb / 20);
+    return linear;
+  };
+
+  // Setup equalizer + clean signal chain
   const setupEqualizer = useCallback((audio: HTMLAudioElement) => {
     if (audioContextRef.current) return; // already set up
     try {
@@ -34,23 +53,47 @@ export function useAudioPlayer() {
       sourceRef.current = source;
       audioContextRef.current = ctx;
 
+      // Pre-gain attenuates input to leave headroom for EQ boosts (prevents clipping)
+      const preGain = ctx.createGain();
+      preGain.gain.value = computePreGain(equalizerBands);
+      preGainRef.current = preGain;
+
       const frequencies = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
       const filters = frequencies.map((freq, i) => {
         const filter = ctx.createBiquadFilter();
         filter.type = i === 0 ? 'lowshelf' : i === frequencies.length - 1 ? 'highshelf' : 'peaking';
         filter.frequency.value = freq;
-        filter.gain.value = ((equalizerBands[i] ?? 50) - 50) * 0.4; // -20 to +20 dB range
-        filter.Q.value = 1.4;
+        filter.gain.value = sliderToDb(equalizerBands[i]);
+        // Lower Q = smoother, less ringing/harshness
+        filter.Q.value = 0.7;
         return filter;
       });
 
-      // Chain: source -> filters -> destination
+      // Soft-knee compressor catches any residual peaks transparently
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -3;
+      compressor.knee.value = 24;
+      compressor.ratio.value = 3;
+      compressor.attack.value = 0.005;
+      compressor.release.value = 0.1;
+      compressorRef.current = compressor;
+
+      // Post-gain restores perceived loudness after pre-attenuation
+      const postGain = ctx.createGain();
+      postGain.gain.value = 1.0;
+      postGainRef.current = postGain;
+
+      // Chain: source -> preGain -> filters -> compressor -> postGain -> destination
       let prev: AudioNode = source;
+      prev.connect(preGain);
+      prev = preGain;
       filters.forEach((f) => {
         prev.connect(f);
         prev = f;
       });
-      prev.connect(ctx.destination);
+      prev.connect(compressor);
+      compressor.connect(postGain);
+      postGain.connect(ctx.destination);
 
       filtersRef.current = filters;
     } catch (e) {
@@ -58,11 +101,24 @@ export function useAudioPlayer() {
     }
   }, []);
 
-  // Update EQ bands
+  // Update EQ bands + adjust headroom dynamically
   useEffect(() => {
+    const ctx = audioContextRef.current;
     filtersRef.current.forEach((filter, i) => {
-      filter.gain.value = ((equalizerBands[i] ?? 50) - 50) * 0.4;
+      const db = sliderToDb(equalizerBands[i]);
+      if (ctx) {
+        filter.gain.setTargetAtTime(db, ctx.currentTime, 0.02);
+      } else {
+        filter.gain.value = db;
+      }
     });
+    if (preGainRef.current && ctx) {
+      preGainRef.current.gain.setTargetAtTime(
+        computePreGain(equalizerBands),
+        ctx.currentTime,
+        0.05
+      );
+    }
   }, [equalizerBands]);
 
   // Load & play song
