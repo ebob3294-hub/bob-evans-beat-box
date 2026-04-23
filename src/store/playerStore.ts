@@ -178,10 +178,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     reverb: 0,
     loudness: 50,
   }),
-    const bands = [...s.equalizerBands];
-    bands[index] = value;
-    return { equalizerBands: bands };
-  }),
   addToQueue: (song) => set((s) => ({ queue: [...s.queue, song] })),
   removeFromQueue: (id) => set((s) => ({ queue: s.queue.filter((q) => q.id !== id) })),
   nextSong: () => {
