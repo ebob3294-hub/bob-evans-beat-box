@@ -166,6 +166,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     bands[index] = value;
     return { equalizerBands: bands };
   }),
+  setBassBoost: (v) => set({ bassBoost: v }),
+  setVirtualizer: (v) => set({ virtualizer: v }),
+  setReverb: (v) => set({ reverb: v }),
+  setLoudness: (v) => set({ loudness: v }),
+  setEffectsEnabled: (v) => set({ effectsEnabled: v }),
+  resetEffects: () => set({
+    equalizerBands: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+    bassBoost: 0,
+    virtualizer: 0,
+    reverb: 0,
+    loudness: 50,
+  }),
+    const bands = [...s.equalizerBands];
+    bands[index] = value;
+    return { equalizerBands: bands };
+  }),
   addToQueue: (song) => set((s) => ({ queue: [...s.queue, song] })),
   removeFromQueue: (id) => set((s) => ({ queue: s.queue.filter((q) => q.id !== id) })),
   nextSong: () => {
