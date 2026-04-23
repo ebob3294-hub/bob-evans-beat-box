@@ -181,18 +181,25 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   addToQueue: (song) => set((s) => ({ queue: [...s.queue, song] })),
   removeFromQueue: (id) => set((s) => ({ queue: s.queue.filter((q) => q.id !== id) })),
   nextSong: () => {
-    const { songs, currentSong, shuffle, queue } = get();
+    const { songs, currentSong, shuffle, queue, repeat } = get();
     if (queue.length > 0) {
       const next = queue[0];
       set({ currentSong: next, queue: queue.slice(1), isPlaying: true });
       return;
     }
-    if (!currentSong) return;
+    if (!currentSong || songs.length === 0) return;
     if (shuffle) {
       const random = songs[Math.floor(Math.random() * songs.length)];
       set({ currentSong: random, isPlaying: true });
     } else {
       const idx = songs.findIndex((s) => s.id === currentSong.id);
+      const isLast = idx === songs.length - 1;
+      if (isLast && repeat === 'off') {
+        // Reached end of library and repeat is off -> stop playback
+        set({ isPlaying: false, currentTime: 0 });
+        return;
+      }
+      // repeat === 'all' (or not last) -> wrap / advance
       const next = songs[(idx + 1) % songs.length];
       set({ currentSong: next, isPlaying: true });
     }
