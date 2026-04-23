@@ -87,6 +87,12 @@ interface PlayerState {
   setActiveCategory: (cat: string) => void;
   setActiveView: (view: PlayerState['activeView']) => void;
   setEqualizerBand: (index: number, value: number) => void;
+  setBassBoost: (v: number) => void;
+  setVirtualizer: (v: number) => void;
+  setReverb: (v: number) => void;
+  setLoudness: (v: number) => void;
+  setEffectsEnabled: (v: boolean) => void;
+  resetEffects: () => void;
   addToQueue: (song: Song) => void;
   removeFromQueue: (id: string) => void;
   nextSong: () => void;
