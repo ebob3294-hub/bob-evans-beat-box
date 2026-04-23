@@ -18,58 +18,117 @@ function getAudio(): HTMLAudioElement {
   return globalAudio;
 }
 
+// Build a short impulse response for a smooth hall-style reverb
+function createImpulseResponse(ctx: AudioContext, durationSec = 2.2, decay = 2.5) {
+  const sampleRate = ctx.sampleRate;
+  const length = sampleRate * durationSec;
+  const impulse = ctx.createBuffer(2, length, sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = impulse.getChannelData(ch);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    }
+  }
+  return impulse;
+}
+
 export function useAudioPlayer() {
-  const { currentSong, isPlaying, repeat, nextSong, setCurrentTime, equalizerBands } = usePlayerStore();
+  const {
+    currentSong,
+    isPlaying,
+    repeat,
+    nextSong,
+    setCurrentTime,
+    equalizerBands,
+    bassBoost,
+    virtualizer,
+    reverb,
+    loudness,
+    effectsEnabled,
+  } = usePlayerStore();
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const filtersRef = useRef<BiquadFilterNode[]>([]);
   const preGainRef = useRef<GainNode | null>(null);
   const compressorRef = useRef<DynamicsCompressorNode | null>(null);
   const postGainRef = useRef<GainNode | null>(null);
+  const bassFilterRef = useRef<BiquadFilterNode | null>(null);
+  const splitterRef = useRef<ChannelSplitterNode | null>(null);
+  const mergerRef = useRef<ChannelMergerNode | null>(null);
+  const widthDelayRef = useRef<DelayNode | null>(null);
+  const widthGainRef = useRef<GainNode | null>(null);
+  const reverbNodeRef = useRef<ConvolverNode | null>(null);
+  const reverbWetRef = useRef<GainNode | null>(null);
+  const reverbDryRef = useRef<GainNode | null>(null);
+  const masterRef = useRef<GainNode | null>(null);
   const currentSongIdRef = useRef<string | null>(null);
 
-  // Convert slider value (0-100, 50 = neutral) to dB gain.
-  // Reduced from ±20 dB to ±8 dB to avoid distortion/clipping.
+  // Slider (0-100, 50 neutral) -> ±8 dB EQ band gain
   const sliderToDb = (val: number) => ((val ?? 50) - 50) * 0.16;
 
-  // Sum of positive EQ gains determines how much we need to attenuate
-  // the pre-gain to keep the signal from clipping.
   const computePreGain = (bands: number[]) => {
-    const maxBoostDb = Math.max(
-      0,
-      ...bands.map((b) => sliderToDb(b))
-    );
-    // Headroom: drop input by the largest boost so peaks stay below 0 dBFS
-    const linear = Math.pow(10, -maxBoostDb / 20);
-    return linear;
+    const maxBoostDb = Math.max(0, ...bands.map((b) => sliderToDb(b)));
+    return Math.pow(10, -maxBoostDb / 20);
   };
 
-  // Setup equalizer + clean signal chain
+  // Setup full effect chain
   const setupEqualizer = useCallback((audio: HTMLAudioElement) => {
-    if (audioContextRef.current) return; // already set up
+    if (audioContextRef.current) return;
     try {
       const ctx = new AudioContext();
       const source = ctx.createMediaElementSource(audio);
       sourceRef.current = source;
       audioContextRef.current = ctx;
 
-      // Pre-gain attenuates input to leave headroom for EQ boosts (prevents clipping)
+      // Pre-gain: headroom for EQ boosts
       const preGain = ctx.createGain();
       preGain.gain.value = computePreGain(equalizerBands);
       preGainRef.current = preGain;
 
+      // Bass boost (low shelf, separate from EQ band so user can stack)
+      const bass = ctx.createBiquadFilter();
+      bass.type = 'lowshelf';
+      bass.frequency.value = 120;
+      bass.gain.value = (bassBoost / 100) * 12; // up to +12 dB
+      bassFilterRef.current = bass;
+
+      // 10-band EQ
       const frequencies = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
       const filters = frequencies.map((freq, i) => {
-        const filter = ctx.createBiquadFilter();
-        filter.type = i === 0 ? 'lowshelf' : i === frequencies.length - 1 ? 'highshelf' : 'peaking';
-        filter.frequency.value = freq;
-        filter.gain.value = sliderToDb(equalizerBands[i]);
-        // Lower Q = smoother, less ringing/harshness
-        filter.Q.value = 0.7;
-        return filter;
+        const f = ctx.createBiquadFilter();
+        f.type = i === 0 ? 'lowshelf' : i === frequencies.length - 1 ? 'highshelf' : 'peaking';
+        f.frequency.value = freq;
+        f.gain.value = sliderToDb(equalizerBands[i]);
+        f.Q.value = 0.7;
+        return f;
       });
+      filtersRef.current = filters;
 
-      // Soft-knee compressor catches any residual peaks transparently
+      // Virtualizer (Haas-effect stereo widener)
+      const splitter = ctx.createChannelSplitter(2);
+      const merger = ctx.createChannelMerger(2);
+      const widthDelay = ctx.createDelay(0.05);
+      widthDelay.delayTime.value = (virtualizer / 100) * 0.025; // 0-25 ms
+      const widthGain = ctx.createGain();
+      widthGain.gain.value = virtualizer / 100;
+      splitterRef.current = splitter;
+      mergerRef.current = merger;
+      widthDelayRef.current = widthDelay;
+      widthGainRef.current = widthGain;
+
+      // Reverb (convolver with wet/dry mix)
+      const convolver = ctx.createConvolver();
+      convolver.buffer = createImpulseResponse(ctx);
+      const reverbWet = ctx.createGain();
+      reverbWet.gain.value = reverb / 100;
+      const reverbDry = ctx.createGain();
+      reverbDry.gain.value = 1;
+      reverbNodeRef.current = convolver;
+      reverbWetRef.current = reverbWet;
+      reverbDryRef.current = reverbDry;
+
+      // Compressor (transparent peak limiting)
       const compressor = ctx.createDynamicsCompressor();
       compressor.threshold.value = -3;
       compressor.knee.value = 24;
@@ -78,48 +137,102 @@ export function useAudioPlayer() {
       compressor.release.value = 0.1;
       compressorRef.current = compressor;
 
-      // Post-gain restores perceived loudness after pre-attenuation
+      // Master/loudness
       const postGain = ctx.createGain();
       postGain.gain.value = 1.0;
       postGainRef.current = postGain;
 
-      // Chain: source -> preGain -> filters -> compressor -> postGain -> destination
-      let prev: AudioNode = source;
-      prev.connect(preGain);
-      prev = preGain;
-      filters.forEach((f) => {
-        prev.connect(f);
-        prev = f;
-      });
-      prev.connect(compressor);
-      compressor.connect(postGain);
-      postGain.connect(ctx.destination);
+      const master = ctx.createGain();
+      master.gain.value = (loudness / 50); // 50 = unity, 100 = 2x
+      masterRef.current = master;
 
-      filtersRef.current = filters;
+      // Chain:
+      // source -> preGain -> bass -> EQ filters -> [splitter -> (L direct, R delayed) -> merger]
+      //   -> dry path & convolver wet path -> compressor -> postGain -> master -> destination
+      let prev: AudioNode = source;
+      prev.connect(preGain); prev = preGain;
+      prev.connect(bass); prev = bass;
+      filters.forEach((f) => { prev.connect(f); prev = f; });
+
+      // Stereo widener: L stays, R is delayed slightly (Haas) and mixed back
+      prev.connect(splitter);
+      // L channel direct
+      splitter.connect(merger, 0, 0);
+      // R channel: pass-through + delayed copy scaled by widthGain
+      splitter.connect(merger, 1, 1);
+      splitter.connect(widthDelay, 1);
+      widthDelay.connect(widthGain);
+      widthGain.connect(merger, 0, 1);
+
+      // Wet/dry reverb
+      merger.connect(reverbDry);
+      merger.connect(convolver);
+      convolver.connect(reverbWet);
+
+      reverbDry.connect(compressor);
+      reverbWet.connect(compressor);
+
+      compressor.connect(postGain);
+      postGain.connect(master);
+      master.connect(ctx.destination);
     } catch (e) {
-      console.warn('[AudioPlayer] EQ setup failed:', e);
+      console.warn('[AudioPlayer] Audio chain setup failed:', e);
     }
   }, []);
 
-  // Update EQ bands + adjust headroom dynamically
+  // Update EQ bands + headroom
   useEffect(() => {
     const ctx = audioContextRef.current;
     filtersRef.current.forEach((filter, i) => {
-      const db = sliderToDb(equalizerBands[i]);
-      if (ctx) {
-        filter.gain.setTargetAtTime(db, ctx.currentTime, 0.02);
-      } else {
-        filter.gain.value = db;
-      }
+      const db = effectsEnabled ? sliderToDb(equalizerBands[i]) : 0;
+      if (ctx) filter.gain.setTargetAtTime(db, ctx.currentTime, 0.02);
+      else filter.gain.value = db;
     });
     if (preGainRef.current && ctx) {
       preGainRef.current.gain.setTargetAtTime(
-        computePreGain(equalizerBands),
+        effectsEnabled ? computePreGain(equalizerBands) : 1,
         ctx.currentTime,
         0.05
       );
     }
-  }, [equalizerBands]);
+  }, [equalizerBands, effectsEnabled]);
+
+  // Update bass boost
+  useEffect(() => {
+    const ctx = audioContextRef.current;
+    if (bassFilterRef.current && ctx) {
+      const target = effectsEnabled ? (bassBoost / 100) * 12 : 0;
+      bassFilterRef.current.gain.setTargetAtTime(target, ctx.currentTime, 0.05);
+    }
+  }, [bassBoost, effectsEnabled]);
+
+  // Update virtualizer
+  useEffect(() => {
+    const ctx = audioContextRef.current;
+    if (widthDelayRef.current && widthGainRef.current && ctx) {
+      const v = effectsEnabled ? virtualizer / 100 : 0;
+      widthDelayRef.current.delayTime.setTargetAtTime(v * 0.025, ctx.currentTime, 0.05);
+      widthGainRef.current.gain.setTargetAtTime(v, ctx.currentTime, 0.05);
+    }
+  }, [virtualizer, effectsEnabled]);
+
+  // Update reverb mix
+  useEffect(() => {
+    const ctx = audioContextRef.current;
+    if (reverbWetRef.current && reverbDryRef.current && ctx) {
+      const wet = effectsEnabled ? reverb / 100 : 0;
+      reverbWetRef.current.gain.setTargetAtTime(wet * 0.6, ctx.currentTime, 0.05);
+      reverbDryRef.current.gain.setTargetAtTime(1 - wet * 0.3, ctx.currentTime, 0.05);
+    }
+  }, [reverb, effectsEnabled]);
+
+  // Update master loudness
+  useEffect(() => {
+    const ctx = audioContextRef.current;
+    if (masterRef.current && ctx) {
+      masterRef.current.gain.setTargetAtTime(loudness / 50, ctx.currentTime, 0.05);
+    }
+  }, [loudness]);
 
   // Load & play song
   useEffect(() => {
@@ -130,16 +243,13 @@ export function useAudioPlayer() {
     const audio = getAudio();
 
     const loadSong = async () => {
-      // Try to get blob from IndexedDB (web file picker songs)
       const blob = await getAudioBlob(currentSong.id);
       if (blob) {
-        // Revoke previous object URL if any
         if (audio.src.startsWith('blob:')) {
           URL.revokeObjectURL(audio.src);
         }
         audio.src = URL.createObjectURL(blob);
       } else if (currentSong.filePath) {
-        // Native file path — convert for WebView access
         const convertedSrc = Capacitor.convertFileSrc(currentSong.filePath);
         console.log('[AudioPlayer] Playing native file:', convertedSrc);
         audio.src = convertedSrc;
@@ -181,14 +291,10 @@ export function useAudioPlayer() {
     }
   }, [isPlaying, currentSong]);
 
-  // Time update & ended handlers
+  // Time + ended handlers
   useEffect(() => {
     const audio = getAudio();
-
-    const onTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
     const onEnded = () => {
       if (repeat === 'one') {
         audio.currentTime = 0;
@@ -197,20 +303,16 @@ export function useAudioPlayer() {
         nextSong();
       }
     };
-
     audio.addEventListener('timeupdate', onTimeUpdate);
     audio.addEventListener('ended', onEnded);
-
     return () => {
       audio.removeEventListener('timeupdate', onTimeUpdate);
       audio.removeEventListener('ended', onEnded);
     };
   }, [repeat, nextSong, setCurrentTime]);
 
-  // Seek function
   const seekTo = useCallback((time: number) => {
-    const audio = getAudio();
-    audio.currentTime = time;
+    getAudio().currentTime = time;
   }, []);
 
   const getDuration = useCallback((): number => {

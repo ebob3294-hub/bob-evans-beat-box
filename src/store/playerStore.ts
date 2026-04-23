@@ -65,6 +65,11 @@ interface PlayerState {
   activeCategory: string;
   activeView: 'library' | 'nowPlaying' | 'equalizer' | 'queue' | 'settings';
   equalizerBands: number[];
+  bassBoost: number;        // 0-100
+  virtualizer: number;      // 0-100 (stereo width)
+  reverb: number;           // 0-100 (wet mix)
+  loudness: number;         // 0-100 (master gain, 50 = unity)
+  effectsEnabled: boolean;
   playlists: Playlist[];
   likedIds: string[];
   bgColor: string;
@@ -82,6 +87,12 @@ interface PlayerState {
   setActiveCategory: (cat: string) => void;
   setActiveView: (view: PlayerState['activeView']) => void;
   setEqualizerBand: (index: number, value: number) => void;
+  setBassBoost: (v: number) => void;
+  setVirtualizer: (v: number) => void;
+  setReverb: (v: number) => void;
+  setLoudness: (v: number) => void;
+  setEffectsEnabled: (v: boolean) => void;
+  resetEffects: () => void;
   addToQueue: (song: Song) => void;
   removeFromQueue: (id: string) => void;
   nextSong: () => void;
@@ -112,6 +123,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   activeCategory: 'All',
   activeView: 'library',
   equalizerBands: [50, 60, 75, 80, 70, 55, 65, 72, 60, 50],
+  bassBoost: 0,
+  virtualizer: 0,
+  reverb: 0,
+  loudness: 50,
+  effectsEnabled: true,
   bgColor: '',
   bgImage: null,
   playlists: loadPlaylists(),
@@ -149,6 +165,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const bands = [...s.equalizerBands];
     bands[index] = value;
     return { equalizerBands: bands };
+  }),
+  setBassBoost: (v) => set({ bassBoost: v }),
+  setVirtualizer: (v) => set({ virtualizer: v }),
+  setReverb: (v) => set({ reverb: v }),
+  setLoudness: (v) => set({ loudness: v }),
+  setEffectsEnabled: (v) => set({ effectsEnabled: v }),
+  resetEffects: () => set({
+    equalizerBands: [50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
+    bassBoost: 0,
+    virtualizer: 0,
+    reverb: 0,
+    loudness: 50,
   }),
   addToQueue: (song) => set((s) => ({ queue: [...s.queue, song] })),
   removeFromQueue: (id) => set((s) => ({ queue: s.queue.filter((q) => q.id !== id) })),
