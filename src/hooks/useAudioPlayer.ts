@@ -47,6 +47,10 @@ export function useAudioPlayer() {
     effectsEnabled,
   } = usePlayerStore();
 
+  // Grab actions outside of effect deps to avoid re-binding session handlers
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const prevSong = usePlayerStore((s) => s.prevSong);
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const filtersRef = useRef<BiquadFilterNode[]>([]);
@@ -318,6 +322,74 @@ export function useAudioPlayer() {
   const getDuration = useCallback((): number => {
     return getAudio().duration || 0;
   }, []);
+
+  // ── Lockscreen / Notification media controls (MediaSession API) ──
+  // Lets the user play/pause/skip from the lockscreen or notification shade
+  // when the screen is off (Android Chrome / Capacitor WebView).
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    if (!currentSong) {
+      navigator.mediaSession.metadata = null;
+      return;
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.title,
+      artist: currentSong.artist,
+      album: currentSong.album,
+    });
+
+    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+    const handlers: Array<[MediaSessionAction, () => void]> = [
+      ['play', () => {
+        if (!usePlayerStore.getState().isPlaying) togglePlay();
+      }],
+      ['pause', () => {
+        if (usePlayerStore.getState().isPlaying) togglePlay();
+      }],
+      ['previoustrack', () => prevSong()],
+      ['nexttrack', () => nextSong()],
+      ['stop', () => {
+        if (usePlayerStore.getState().isPlaying) togglePlay();
+      }],
+    ];
+
+    handlers.forEach(([action, handler]) => {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Some actions may not be supported on all platforms — ignore
+      }
+    });
+
+    return () => {
+      handlers.forEach(([action]) => {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch {
+          // ignore
+        }
+      });
+    };
+  }, [currentSong, isPlaying, nextSong, prevSong, togglePlay]);
+
+  // Keep position state in sync so the lockscreen scrubber updates
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    if (!('setPositionState' in navigator.mediaSession)) return;
+    const audio = getAudio();
+    if (!audio.duration || !isFinite(audio.duration)) return;
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: audio.duration,
+        position: Math.min(audio.currentTime, audio.duration),
+        playbackRate: audio.playbackRate || 1,
+      });
+    } catch {
+      // ignore
+    }
+  }, [currentSong, isPlaying]);
 
   return { seekTo, getDuration };
 }
