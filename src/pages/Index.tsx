@@ -21,6 +21,7 @@ const views = {
 const Index = () => {
   const { activeView, bgColor, bgImage, permissionGranted } = usePlayerStore();
   useAudioPlayer(); // Mount global audio playback
+  useAndroidBackButton(); // Handle Android hardware back button
   const ActiveComponent = views[activeView];
 
   const phoneStyle: React.CSSProperties = {};
