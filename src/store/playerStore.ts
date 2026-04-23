@@ -65,6 +65,11 @@ interface PlayerState {
   activeCategory: string;
   activeView: 'library' | 'nowPlaying' | 'equalizer' | 'queue' | 'settings';
   equalizerBands: number[];
+  bassBoost: number;        // 0-100
+  virtualizer: number;      // 0-100 (stereo width)
+  reverb: number;           // 0-100 (wet mix)
+  loudness: number;         // 0-100 (master gain, 50 = unity)
+  effectsEnabled: boolean;
   playlists: Playlist[];
   likedIds: string[];
   bgColor: string;
