@@ -47,6 +47,10 @@ export function useAudioPlayer() {
     effectsEnabled,
   } = usePlayerStore();
 
+  // Grab actions outside of effect deps to avoid re-binding session handlers
+  const togglePlay = usePlayerStore((s) => s.togglePlay);
+  const prevSong = usePlayerStore((s) => s.prevSong);
+
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const filtersRef = useRef<BiquadFilterNode[]>([]);
