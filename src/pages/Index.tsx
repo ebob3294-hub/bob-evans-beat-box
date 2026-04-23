@@ -8,6 +8,7 @@ import BottomNav from '@/components/player/BottomNav';
 import PermissionScreen, { ScanningOverlay } from '@/components/player/PermissionScreen';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 
 const views = {
   library: LibraryView,
