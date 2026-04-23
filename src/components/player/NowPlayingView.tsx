@@ -89,7 +89,7 @@ const NowPlayingView = () => {
             />
           </svg>
           <motion.div
-            className={`absolute inset-8 rounded-full overflow-hidden border-4 border-secondary shadow-2xl ${isPlaying ? 'vinyl-spin' : ''}`}
+            className={`absolute inset-8 rounded-full overflow-hidden border-4 border-secondary shadow-2xl ${isPlaying ? 'vinyl-spin' : 'vinyl-spin-paused'}`}
           >
             <img
               src={albumCovers[currentSong.coverIndex]}
