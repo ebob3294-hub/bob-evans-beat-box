@@ -70,6 +70,39 @@ const SettingsView = () => {
         </div>
       </div>
 
+      {/* Accent Theme */}
+      <div className="px-5 mt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-display font-semibold">Accent Theme</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {THEME_SWATCHES.map((t) => {
+            const active = theme === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
+                  active
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-muted-foreground/30'
+                }`}
+              >
+                <div
+                  className="w-5 h-5 rounded-full shrink-0"
+                  style={{
+                    background: `hsl(${t.hsl})`,
+                    boxShadow: active ? `0 0 12px hsl(${t.hsl} / 0.6)` : undefined,
+                  }}
+                />
+                <span className="text-[11px] text-foreground truncate">{t.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Background Color */}
       <div className="px-5 mt-4">
         <div className="flex items-center gap-2 mb-3">
