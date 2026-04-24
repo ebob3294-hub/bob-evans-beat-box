@@ -62,7 +62,7 @@ const MusicVisualizer = ({ isPlaying, bars = 48, className = '' }: Props) => {
         if (!dataArray || dataArray.length !== analyser.frequencyBinCount) {
           dataArray = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
         }
-        analyser.getByteFrequencyData(dataArray as unknown as Uint8Array);
+        (analyser.getByteFrequencyData as any)(dataArray);
         // Sample from low-mids to highs (skip the very bottom DC bins)
         const start = 2;
         const end = Math.min(dataArray.length, 320);
