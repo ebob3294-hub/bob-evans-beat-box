@@ -35,7 +35,7 @@ const MusicVisualizer = ({ isPlaying, bars = 48, className = '' }: Props) => {
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
 
-    let dataArray: Uint8Array | null = null;
+    let dataArray: Uint8Array<ArrayBuffer> | null = null;
     let phase = 0;
 
     const getPrimary = () => {
@@ -60,9 +60,9 @@ const MusicVisualizer = ({ isPlaying, bars = 48, className = '' }: Props) => {
 
       if (analyser && isPlaying) {
         if (!dataArray || dataArray.length !== analyser.frequencyBinCount) {
-          dataArray = new Uint8Array(analyser.frequencyBinCount);
+          dataArray = new Uint8Array(new ArrayBuffer(analyser.frequencyBinCount));
         }
-        analyser.getByteFrequencyData(dataArray);
+        analyser.getByteFrequencyData(dataArray as unknown as Uint8Array);
         // Sample from low-mids to highs (skip the very bottom DC bins)
         const start = 2;
         const end = Math.min(dataArray.length, 320);
