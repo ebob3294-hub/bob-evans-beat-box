@@ -23,6 +23,17 @@ const LIKED_KEY = 'bob-evan-liked';
 const PLAYLISTS_KEY = 'bob-evan-playlists';
 const PERMISSION_KEY = 'bob-evan-permission';
 const HISTORY_KEY = 'bob-evan-history';
+const THEME_KEY = 'bob-evan-theme';
+
+export type ThemeId = 'red' | 'blue' | 'purple' | 'green' | 'orange' | 'cyan';
+
+function loadTheme(): ThemeId {
+  const v = localStorage.getItem(THEME_KEY) as ThemeId | null;
+  return v || 'red';
+}
+function saveTheme(t: ThemeId) {
+  localStorage.setItem(THEME_KEY, t);
+}
 
 interface HistoryEntry {
   song: Song;
@@ -74,6 +85,7 @@ interface PlayerState {
   likedIds: string[];
   bgColor: string;
   bgImage: string | null;
+  theme: ThemeId;
   permissionGranted: boolean;
   isScanning: boolean;
 
