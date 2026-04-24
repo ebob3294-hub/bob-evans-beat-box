@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { scanDeviceMusic, pickMusicFiles } from '@/services/musicScanner';
 import { useState } from 'react';
+import { Input } from '@/components/ui/input';
 
 type LibraryTab = 'all' | 'recent' | 'liked' | 'history' | 'playlists';
 
@@ -15,6 +16,7 @@ const LibraryView = () => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [selectedPlaylist, setSelectedPlaylist] = useState<string | null>(null);
   const [addToPlaylistSong, setAddToPlaylistSong] = useState<string | null>(null);
+  const [showPlaylistSongPicker, setShowPlaylistSongPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
@@ -44,6 +46,12 @@ const LibraryView = () => {
   const recentSongs = [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
   const likedSongs = songs.filter((s) => likedIds.includes(s.id));
   const historySongs = history.map(h => h.song);
+  const selectedPlaylistData = selectedPlaylist
+    ? playlists.find((playlist) => playlist.name === selectedPlaylist) ?? null
+    : null;
+  const selectedPlaylistAvailableSongs = selectedPlaylistData
+    ? songs.filter((song) => !selectedPlaylistData.songs.some((playlistSong) => playlistSong.id === song.id))
+    : [];
 
   const filterBySearch = (list: typeof songs) => {
     if (!searchQuery.trim()) return list;
@@ -64,11 +72,23 @@ const LibraryView = () => {
   const displaySongs = getDisplaySongs();
 
   const handleCreatePlaylist = () => {
-    if (newPlaylistName.trim()) {
-      createPlaylist(newPlaylistName.trim());
+    const trimmedName = newPlaylistName.trim();
+    if (!trimmedName) return;
+
+    const existingPlaylist = playlists.find((playlist) => playlist.name.toLowerCase() === trimmedName.toLowerCase());
+    if (existingPlaylist) {
+      setSelectedPlaylist(existingPlaylist.name);
+      setActiveTab('playlists');
       setNewPlaylistName('');
       setShowNewPlaylist(false);
+      return;
     }
+
+    createPlaylist(trimmedName);
+    setSelectedPlaylist(trimmedName);
+    setActiveTab('playlists');
+    setNewPlaylistName('');
+    setShowNewPlaylist(false);
   };
 
   const renderSongItem = (song: typeof songs[0], i: number) => (
@@ -105,8 +125,21 @@ const LibraryView = () => {
         <button onClick={() => setAddToPlaylistSong(song.id)} className="p-1">
           <Plus className="w-4 h-4 text-muted-foreground" />
         </button>
-        <button onClick={() => removeSong(song.id)} className="p-1">
-          <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+        <button
+          onClick={() => {
+            if (selectedPlaylistData) {
+              removeFromPlaylist(selectedPlaylistData.name, song.id);
+              return;
+            }
+            removeSong(song.id);
+          }}
+          className="p-1"
+        >
+          {selectedPlaylistData ? (
+            <X className="w-4 h-4 text-muted-foreground hover:text-primary" />
+          ) : (
+            <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+          )}
         </button>
       </div>
     </motion.div>
