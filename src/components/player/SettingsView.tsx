@@ -1,5 +1,5 @@
-import { usePlayerStore } from '@/store/playerStore';
-import { Settings, Upload, Palette, X, User } from 'lucide-react';
+import { usePlayerStore, type ThemeId } from '@/store/playerStore';
+import { Settings, Upload, Palette, X, User, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
 
 const BG_COLORS = [
@@ -14,8 +14,17 @@ const BG_COLORS = [
   { name: 'Coffee', value: '#1a1208' },
 ];
 
+const THEME_SWATCHES: { id: ThemeId; name: string; hsl: string }[] = [
+  { id: 'red',    name: 'Crimson', hsl: '0 85% 50%' },
+  { id: 'blue',   name: 'Ocean',   hsl: '217 91% 55%' },
+  { id: 'purple', name: 'Violet',  hsl: '270 80% 60%' },
+  { id: 'green',  name: 'Mint',    hsl: '142 71% 45%' },
+  { id: 'orange', name: 'Sunset',  hsl: '24 95% 55%' },
+  { id: 'cyan',   name: 'Aqua',    hsl: '189 94% 50%' },
+];
+
 const SettingsView = () => {
-  const { bgColor, bgImage, setBgColor, setBgImage } = usePlayerStore();
+  const { bgColor, bgImage, setBgColor, setBgImage, theme, setTheme } = usePlayerStore();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
