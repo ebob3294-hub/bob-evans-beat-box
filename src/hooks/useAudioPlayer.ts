@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { usePlayerStore } from '@/store/playerStore';
 import { getAudioBlob } from '@/services/audioStorage';
+import { albumCovers } from '@/components/player/AlbumCovers';
 
 /**
  * Global audio element managed by this hook.
@@ -335,32 +336,76 @@ export function useAudioPlayer() {
   // ── Lockscreen / Notification media controls (MediaSession API) ──
   // Lets the user play/pause/skip from the lockscreen or notification shade
   // when the screen is off (Android Chrome / Capacitor WebView).
+  //
+  // For Android to actually display the lockscreen notification, the audio
+  // element MUST be playing (Chromium only surfaces the system media UI for
+  // tabs that are currently producing sound). Setting metadata + handlers
+  // here ensures the controls are ready as soon as playback begins.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     if (!currentSong) {
-      navigator.mediaSession.metadata = null;
+      try { navigator.mediaSession.metadata = null; } catch { /* ignore */ }
       return;
     }
 
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentSong.title,
-      artist: currentSong.artist,
-      album: currentSong.album,
-    });
+    // Resolve cover artwork to an absolute URL so the system can fetch it
+    const coverSrc = albumCovers[currentSong.coverIndex] || albumCovers[0];
+    const artworkUrl = new URL(coverSrc, window.location.href).href;
 
-    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title || 'Unknown Title',
+        artist: currentSong.artist || 'Unknown Artist',
+        album: currentSong.album || '',
+        artwork: [
+          { src: artworkUrl, sizes: '96x96',   type: 'image/jpeg' },
+          { src: artworkUrl, sizes: '192x192', type: 'image/jpeg' },
+          { src: artworkUrl, sizes: '256x256', type: 'image/jpeg' },
+          { src: artworkUrl, sizes: '384x384', type: 'image/jpeg' },
+          { src: artworkUrl, sizes: '512x512', type: 'image/jpeg' },
+        ],
+      });
+    } catch (e) {
+      console.warn('[MediaSession] metadata failed:', e);
+    }
 
-    const handlers: Array<[MediaSessionAction, () => void]> = [
+    try {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    } catch { /* ignore */ }
+
+    const audio = getAudio();
+
+    const handlers: Array<[MediaSessionAction, MediaSessionActionHandler]> = [
       ['play', () => {
+        audio.play().catch(() => {});
         if (!usePlayerStore.getState().isPlaying) togglePlay();
       }],
       ['pause', () => {
+        audio.pause();
         if (usePlayerStore.getState().isPlaying) togglePlay();
       }],
       ['previoustrack', () => prevSong()],
       ['nexttrack', () => nextSong()],
       ['stop', () => {
+        audio.pause();
         if (usePlayerStore.getState().isPlaying) togglePlay();
+      }],
+      ['seekbackward', (details) => {
+        const skip = details.seekOffset || 10;
+        audio.currentTime = Math.max(0, audio.currentTime - skip);
+      }],
+      ['seekforward', (details) => {
+        const skip = details.seekOffset || 10;
+        audio.currentTime = Math.min(audio.duration || Infinity, audio.currentTime + skip);
+      }],
+      ['seekto', (details) => {
+        if (details.seekTime != null) {
+          if (details.fastSeek && 'fastSeek' in audio) {
+            (audio as any).fastSeek(details.seekTime);
+          } else {
+            audio.currentTime = details.seekTime;
+          }
+        }
       }],
     ];
 
@@ -372,6 +417,17 @@ export function useAudioPlayer() {
       }
     });
 
+    // Mirror the <audio> element's own play/pause events into the session
+    // so the system UI updates instantly even when state changes natively.
+    const onPlay = () => {
+      try { navigator.mediaSession.playbackState = 'playing'; } catch { /* ignore */ }
+    };
+    const onPause = () => {
+      try { navigator.mediaSession.playbackState = 'paused'; } catch { /* ignore */ }
+    };
+    audio.addEventListener('play', onPlay);
+    audio.addEventListener('pause', onPause);
+
     return () => {
       handlers.forEach(([action]) => {
         try {
@@ -380,6 +436,8 @@ export function useAudioPlayer() {
           // ignore
         }
       });
+      audio.removeEventListener('play', onPlay);
+      audio.removeEventListener('pause', onPause);
     };
   }, [currentSong, isPlaying, nextSong, prevSong, togglePlay]);
 
