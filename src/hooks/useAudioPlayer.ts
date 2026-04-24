@@ -456,7 +456,7 @@ export function useAudioPlayer() {
     } catch {
       // ignore
     }
-  }, [currentSong, isPlaying, currentTime]);
+  }, [currentSong, isPlaying]);
 
   return { seekTo, getDuration };
 }
