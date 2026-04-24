@@ -66,6 +66,7 @@ export function useAudioPlayer() {
   const reverbWetRef = useRef<GainNode | null>(null);
   const reverbDryRef = useRef<GainNode | null>(null);
   const masterRef = useRef<GainNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const currentSongIdRef = useRef<string | null>(null);
 
   // Slider (0-100, 50 neutral) -> ±8 dB EQ band gain
@@ -150,9 +151,16 @@ export function useAudioPlayer() {
       master.gain.value = (loudness / 50); // 50 = unity, 100 = 2x
       masterRef.current = master;
 
+      // Analyser for visualizer (taps the master output, post-effects)
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.78;
+      analyserRef.current = analyser;
+      (window as any).__bobEvanAnalyser = analyser;
+
       // Chain:
       // source -> preGain -> bass -> EQ filters -> [splitter -> (L direct, R delayed) -> merger]
-      //   -> dry path & convolver wet path -> compressor -> postGain -> master -> destination
+      //   -> dry path & convolver wet path -> compressor -> postGain -> master -> analyser -> destination
       let prev: AudioNode = source;
       prev.connect(preGain); prev = preGain;
       prev.connect(bass); prev = bass;
@@ -178,7 +186,8 @@ export function useAudioPlayer() {
 
       compressor.connect(postGain);
       postGain.connect(master);
-      master.connect(ctx.destination);
+      master.connect(analyser);
+      analyser.connect(ctx.destination);
     } catch (e) {
       console.warn('[AudioPlayer] Audio chain setup failed:', e);
     }

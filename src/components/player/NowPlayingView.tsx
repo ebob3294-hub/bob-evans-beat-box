@@ -3,6 +3,7 @@ import { albumCovers } from './AlbumCovers';
 import { ChevronDown, SkipBack, SkipForward, Play, Pause, Shuffle, Repeat, Repeat1, Music, MoreVertical } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
+import MusicVisualizer from './MusicVisualizer';
 
 const NowPlayingView = () => {
   const { currentSong, isPlaying, togglePlay, nextSong, prevSong, shuffle, toggleShuffle, repeat, cycleRepeat, setActiveView, currentTime } = usePlayerStore();
@@ -129,9 +130,14 @@ const NowPlayingView = () => {
       </div>
 
       {/* Song info */}
-      <p className="text-sm font-medium text-center px-8 truncate max-w-full mb-4">
+      <p className="text-sm font-medium text-center px-8 truncate max-w-full mb-3">
         {currentSong.artist} – {currentSong.title}
       </p>
+
+      {/* Music visualizer */}
+      <div className="w-full px-10 h-12 mb-3">
+        <MusicVisualizer isPlaying={isPlaying} bars={42} />
+      </div>
 
       {/* Main controls */}
       <div className="flex items-center justify-center gap-10 mb-10">

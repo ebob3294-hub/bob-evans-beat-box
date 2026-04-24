@@ -9,6 +9,18 @@ import PermissionScreen, { ScanningOverlay } from '@/components/player/Permissio
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
+import { useEffect } from 'react';
+import { ThemeId } from '@/store/playerStore';
+
+// Each theme defines the accent HSL values used across the app
+const THEMES: Record<ThemeId, { primary: string; ring: string; accent: string }> = {
+  red:    { primary: '0 85% 50%',   ring: '0 85% 50%',   accent: '0 85% 50%' },
+  blue:   { primary: '217 91% 55%', ring: '217 91% 55%', accent: '217 91% 55%' },
+  purple: { primary: '270 80% 60%', ring: '270 80% 60%', accent: '270 80% 60%' },
+  green:  { primary: '142 71% 45%', ring: '142 71% 45%', accent: '142 71% 45%' },
+  orange: { primary: '24 95% 55%',  ring: '24 95% 55%',  accent: '24 95% 55%' },
+  cyan:   { primary: '189 94% 50%', ring: '189 94% 50%', accent: '189 94% 50%' },
+};
 
 const views = {
   library: LibraryView,
@@ -19,10 +31,22 @@ const views = {
 };
 
 const Index = () => {
-  const { activeView, bgColor, bgImage, permissionGranted } = usePlayerStore();
+  const { activeView, bgColor, bgImage, permissionGranted, theme } = usePlayerStore();
   useAudioPlayer(); // Mount global audio playback
   useAndroidBackButton(); // Handle Android hardware back button
   const ActiveComponent = views[activeView];
+
+  // Apply theme accent colors as CSS variables
+  useEffect(() => {
+    const t = THEMES[theme] || THEMES.red;
+    const root = document.documentElement;
+    root.style.setProperty('--primary', t.primary);
+    root.style.setProperty('--accent', t.accent);
+    root.style.setProperty('--ring', t.ring);
+    root.style.setProperty('--sidebar-primary', t.primary);
+    root.style.setProperty('--sidebar-ring', t.ring);
+    root.style.setProperty('--player-glow', t.primary);
+  }, [theme]);
 
   const phoneStyle: React.CSSProperties = {};
   if (bgImage) {

@@ -1,5 +1,5 @@
-import { usePlayerStore } from '@/store/playerStore';
-import { Settings, Upload, Palette, X, User } from 'lucide-react';
+import { usePlayerStore, type ThemeId } from '@/store/playerStore';
+import { Settings, Upload, Palette, X, User, Sparkles } from 'lucide-react';
 import { useRef } from 'react';
 
 const BG_COLORS = [
@@ -14,8 +14,17 @@ const BG_COLORS = [
   { name: 'Coffee', value: '#1a1208' },
 ];
 
+const THEME_SWATCHES: { id: ThemeId; name: string; hsl: string }[] = [
+  { id: 'red',    name: 'Crimson', hsl: '0 85% 50%' },
+  { id: 'blue',   name: 'Ocean',   hsl: '217 91% 55%' },
+  { id: 'purple', name: 'Violet',  hsl: '270 80% 60%' },
+  { id: 'green',  name: 'Mint',    hsl: '142 71% 45%' },
+  { id: 'orange', name: 'Sunset',  hsl: '24 95% 55%' },
+  { id: 'cyan',   name: 'Aqua',    hsl: '189 94% 50%' },
+];
+
 const SettingsView = () => {
-  const { bgColor, bgImage, setBgColor, setBgImage } = usePlayerStore();
+  const { bgColor, bgImage, setBgColor, setBgImage, theme, setTheme } = usePlayerStore();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,6 +67,39 @@ const SettingsView = () => {
           <span className="text-xs text-muted-foreground font-body">
             Developed by <span className="text-primary/80 font-medium">Ayoub Sadkouni</span>
           </span>
+        </div>
+      </div>
+
+      {/* Accent Theme */}
+      <div className="px-5 mt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-display font-semibold">Accent Theme</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {THEME_SWATCHES.map((t) => {
+            const active = theme === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTheme(t.id)}
+                className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all ${
+                  active
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-muted-foreground/30'
+                }`}
+              >
+                <div
+                  className="w-5 h-5 rounded-full shrink-0"
+                  style={{
+                    background: `hsl(${t.hsl})`,
+                    boxShadow: active ? `0 0 12px hsl(${t.hsl} / 0.6)` : undefined,
+                  }}
+                />
+                <span className="text-[11px] text-foreground truncate">{t.name}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

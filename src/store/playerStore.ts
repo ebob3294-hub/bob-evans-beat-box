@@ -23,6 +23,17 @@ const LIKED_KEY = 'bob-evan-liked';
 const PLAYLISTS_KEY = 'bob-evan-playlists';
 const PERMISSION_KEY = 'bob-evan-permission';
 const HISTORY_KEY = 'bob-evan-history';
+const THEME_KEY = 'bob-evan-theme';
+
+export type ThemeId = 'red' | 'blue' | 'purple' | 'green' | 'orange' | 'cyan';
+
+function loadTheme(): ThemeId {
+  const v = localStorage.getItem(THEME_KEY) as ThemeId | null;
+  return v || 'red';
+}
+function saveTheme(t: ThemeId) {
+  localStorage.setItem(THEME_KEY, t);
+}
 
 interface HistoryEntry {
   song: Song;
@@ -74,6 +85,7 @@ interface PlayerState {
   likedIds: string[];
   bgColor: string;
   bgImage: string | null;
+  theme: ThemeId;
   permissionGranted: boolean;
   isScanning: boolean;
 
@@ -105,6 +117,7 @@ interface PlayerState {
   isLiked: (songId: string) => boolean;
   setBgColor: (color: string) => void;
   setBgImage: (url: string | null) => void;
+  setTheme: (t: ThemeId) => void;
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
   removeSong: (songId: string) => void;
@@ -129,6 +142,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loudness: 50,
   effectsEnabled: true,
   bgColor: '',
+  theme: loadTheme(),
   bgImage: null,
   playlists: loadPlaylists(),
   likedIds: loadLiked(),
@@ -250,6 +264,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isLiked: (songId) => get().likedIds.includes(songId),
   setBgColor: (color) => set({ bgColor: color, bgImage: null }),
   setBgImage: (url) => set({ bgImage: url }),
+  setTheme: (t) => { saveTheme(t); set({ theme: t }); },
   setPermissionGranted: (granted) => {
     savePermission(granted);
     set({ permissionGranted: granted });
