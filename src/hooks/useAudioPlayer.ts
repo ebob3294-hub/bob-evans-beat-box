@@ -460,12 +460,3 @@ export function useAudioPlayer() {
 
   return { seekTo, getDuration };
 }
-        playbackRate: audio.playbackRate || 1,
-      });
-    } catch {
-      // ignore
-    }
-  }, [currentSong, isPlaying]);
-
-  return { seekTo, getDuration };
-}
