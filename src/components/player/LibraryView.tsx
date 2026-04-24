@@ -177,7 +177,7 @@ const LibraryView = () => {
           >
             <div className="flex items-center gap-2 bg-secondary rounded-lg px-3 py-2 mb-2">
               <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-              <input
+              <Input
                 type="search"
                 inputMode="search"
                 name="library-search"
@@ -191,7 +191,7 @@ const LibraryView = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name or artist..."
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                className="h-auto flex-1 border-0 bg-transparent px-0 py-0 text-sm text-foreground shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                 autoFocus
               />
               {searchQuery && (
@@ -233,7 +233,7 @@ const LibraryView = () => {
 
           {showNewPlaylist && (
             <div className="flex gap-2 mb-3">
-              <input
+              <Input
                 type="text"
                 inputMode="text"
                 name="playlist-name"
@@ -247,7 +247,7 @@ const LibraryView = () => {
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
                 placeholder="Playlist name..."
-                className="flex-1 px-3 py-2 bg-secondary rounded-lg text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                className="flex-1 rounded-lg bg-secondary text-sm text-foreground"
                 onKeyDown={(e) => e.key === 'Enter' && handleCreatePlaylist()}
                 autoFocus
               />
@@ -300,6 +300,13 @@ const LibraryView = () => {
           <button onClick={() => setSelectedPlaylist(null)} className="text-xs text-primary">← Back</button>
           <h3 className="text-lg font-bold text-foreground">{selectedPlaylist}</h3>
           <span className="text-xs text-muted-foreground">({displaySongs.length})</span>
+          <button
+            onClick={() => setShowPlaylistSongPicker(true)}
+            className="ml-auto flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add songs
+          </button>
         </div>
       )}
 
@@ -368,6 +375,57 @@ const LibraryView = () => {
                   <ListMusic className="w-5 h-5 text-primary" />
                   <span className="text-sm font-medium">{pl.name}</span>
                   <span className="text-xs text-muted-foreground ml-auto">{pl.songs.length} songs</span>
+                </button>
+              ))
+            )}
+          </motion.div>
+        </div>
+      )}
+
+      {showPlaylistSongPicker && selectedPlaylistData && (
+        <div
+          className="absolute inset-0 bg-background/80 backdrop-blur-sm z-40 flex items-end justify-center"
+          onClick={() => setShowPlaylistSongPicker(false)}
+        >
+          <motion.div
+            initial={{ y: 200 }}
+            animate={{ y: 0 }}
+            className="w-full bg-card border-t border-border rounded-t-2xl p-5 max-h-[70%] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div>
+                <h3 className="text-base font-bold">Add Songs</h3>
+                <p className="text-xs text-muted-foreground">{selectedPlaylistData.name}</p>
+              </div>
+              <button onClick={() => setShowPlaylistSongPicker(false)} className="p-1 text-muted-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {selectedPlaylistAvailableSongs.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                All songs are already in this playlist.
+              </div>
+            ) : (
+              selectedPlaylistAvailableSongs.map((song) => (
+                <button
+                  key={song.id}
+                  onClick={() => addToPlaylist(selectedPlaylistData.name, [song])}
+                  className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-md bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {albumCovers[song.coverIndex] ? (
+                      <img src={albumCovers[song.coverIndex]} alt={song.album} className="w-10 h-10 rounded-md object-cover" />
+                    ) : (
+                      <Music className="w-4 h-4 text-primary" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-medium truncate">{song.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
+                  </div>
+                  <Plus className="w-4 h-4 text-primary" />
                 </button>
               ))
             )}
