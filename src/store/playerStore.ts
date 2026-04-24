@@ -117,6 +117,7 @@ interface PlayerState {
   isLiked: (songId: string) => boolean;
   setBgColor: (color: string) => void;
   setBgImage: (url: string | null) => void;
+  setTheme: (t: ThemeId) => void;
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
   removeSong: (songId: string) => void;
@@ -141,6 +142,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loudness: 50,
   effectsEnabled: true,
   bgColor: '',
+  theme: loadTheme(),
   bgImage: null,
   playlists: loadPlaylists(),
   likedIds: loadLiked(),
@@ -262,6 +264,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isLiked: (songId) => get().likedIds.includes(songId),
   setBgColor: (color) => set({ bgColor: color, bgImage: null }),
   setBgImage: (url) => set({ bgImage: url }),
+  setTheme: (t) => { saveTheme(t); set({ theme: t }); },
   setPermissionGranted: (granted) => {
     savePermission(granted);
     set({ permissionGranted: granted });
