@@ -129,6 +129,7 @@ interface PlayerState {
   setBgColor: (color: string) => void;
   setBgImage: (url: string | null) => void;
   setTheme: (t: ThemeId) => void;
+  setVisualizerStyle: (v: VisualizerStyle) => void;
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
   removeSong: (songId: string) => void;
