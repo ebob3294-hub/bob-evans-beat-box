@@ -88,7 +88,13 @@ export function useAudioPlayer() {
   const setupEqualizer = useCallback((audio: HTMLAudioElement) => {
     if (audioContextRef.current) return;
     try {
-      const ctx = new AudioContext();
+      // latencyHint 'playback' tells the browser/OS to optimize the audio
+      // pipeline for music playback (larger buffers, fewer dropouts) which
+      // dramatically improves stability over Bluetooth speakers/headphones.
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+        latencyHint: 'playback',
+        sampleRate: 44100,
+      });
       const source = ctx.createMediaElementSource(audio);
       sourceRef.current = source;
       audioContextRef.current = ctx;
