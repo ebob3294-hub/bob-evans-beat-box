@@ -238,6 +238,11 @@ const LibraryView = () => {
             {tab.id === 'liked' && likedSongs.length > 0 && (
               <span className="bg-primary-foreground/20 rounded-full px-1.5 text-[10px]">{likedSongs.length}</span>
             )}
+            {tab.id === 'recent' && recentlyAddedCount > 0 && (
+              <span className={`rounded-full px-1.5 text-[10px] ${activeTab === tab.id ? 'bg-primary-foreground/20' : 'bg-primary/20 text-primary'}`}>
+                {recentlyAddedCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
