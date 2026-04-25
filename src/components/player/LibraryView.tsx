@@ -358,7 +358,7 @@ const LibraryView = () => {
                 {activeTab === 'liked' ? <Heart className="w-7 h-7 text-primary" /> : activeTab === 'history' ? <History className="w-7 h-7 text-primary" /> : <FolderOpen className="w-7 h-7 text-primary" />}
               </div>
               <p className="text-sm font-medium text-foreground mb-1">
-                {activeTab === 'liked' ? 'No liked songs' : activeTab === 'history' ? 'No history yet' : activeTab === 'recent' ? 'No recent songs' : selectedPlaylist ? 'Playlist is empty' : 'No music yet'}
+                {activeTab === 'liked' ? 'No liked songs' : activeTab === 'history' ? 'No history yet' : activeTab === 'recent' ? 'No recently added songs' : selectedPlaylist ? 'Playlist is empty' : 'No music yet'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {activeTab === 'liked' ? 'Tap ♥ on songs you love' : activeTab === 'history' ? 'Songs you play will appear here' : 'Add music to get started'}
