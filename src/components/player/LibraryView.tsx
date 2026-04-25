@@ -251,10 +251,10 @@ const LibraryView = () => {
                 onKeyDown={(e) => e.key === 'Enter' && handleCreatePlaylist()}
                 autoFocus
               />
-              <button onClick={handleCreatePlaylist} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm">
+              <button type="button" onClick={handleCreatePlaylist} className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm">
                 Add
               </button>
-              <button onClick={() => setShowNewPlaylist(false)} className="px-2 py-2 text-muted-foreground">
+              <button type="button" onClick={() => setShowNewPlaylist(false)} className="px-2 py-2 text-muted-foreground">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -270,25 +270,32 @@ const LibraryView = () => {
             </div>
           ) : (
             playlists.map((pl) => (
-              <button
+              <div
                 key={pl.name}
-                onClick={() => setSelectedPlaylist(pl.name)}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-secondary transition-colors mb-1"
+                className="mb-1 flex items-center gap-2 rounded-lg hover:bg-secondary transition-colors"
               >
-                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <ListMusic className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-foreground">{pl.name}</p>
-                  <p className="text-xs text-muted-foreground">{pl.songs.length} songs</p>
-                </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); deletePlaylist(pl.name); }}
-                  className="p-1.5 text-muted-foreground hover:text-destructive"
+                  type="button"
+                  onClick={() => setSelectedPlaylist(pl.name)}
+                  className="flex flex-1 items-center gap-3 p-3 text-left"
+                >
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <ListMusic className="w-6 h-6 text-primary" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{pl.name}</p>
+                    <p className="text-xs text-muted-foreground">{pl.songs.length} songs</p>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deletePlaylist(pl.name)}
+                  className="p-3 text-muted-foreground hover:text-destructive"
+                  aria-label={`Delete playlist ${pl.name}`}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              </button>
+              </div>
             ))
           )}
         </div>
