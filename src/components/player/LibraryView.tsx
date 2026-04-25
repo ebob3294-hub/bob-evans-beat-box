@@ -1,6 +1,6 @@
 import { usePlayerStore } from '@/store/playerStore';
 import { albumCovers } from './AlbumCovers';
-import { Play, Pause, Search, Music, FolderOpen, Plus, Heart, Clock, ListMusic, Trash2, X, History } from 'lucide-react';
+import { Play, Pause, Search, Music, FolderOpen, Plus, Heart, Clock, ListMusic, Trash2, X, History, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Capacitor } from '@capacitor/core';
 import { scanDeviceMusic, pickMusicFiles } from '@/services/musicScanner';
@@ -37,13 +37,24 @@ const LibraryView = () => {
 
   const tabs: { id: LibraryTab; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All', icon: <Music className="w-3.5 h-3.5" /> },
-    { id: 'recent', label: 'Recent', icon: <Clock className="w-3.5 h-3.5" /> },
+    { id: 'recent', label: 'Recently Added', icon: <Sparkles className="w-3.5 h-3.5" /> },
     { id: 'liked', label: 'Liked', icon: <Heart className="w-3.5 h-3.5" /> },
     { id: 'history', label: 'History', icon: <History className="w-3.5 h-3.5" /> },
     { id: 'playlists', label: 'Playlists', icon: <ListMusic className="w-3.5 h-3.5" /> },
   ];
 
-  const recentSongs = [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
+  // "Recently Added" — songs added in the last 7 days, newest first.
+  // Falls back to the latest 30 if none have a fresh `addedAt` timestamp.
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const freshlyAdded = songs
+    .filter((s) => s.addedAt && now - s.addedAt < SEVEN_DAYS_MS)
+    .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  const recentSongs = freshlyAdded.length > 0
+    ? freshlyAdded
+    : [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
+  const recentlyAddedCount = freshlyAdded.length;
+  const isRecentlyAdded = (id: string) => freshlyAdded.some((s) => s.id === id);
   const likedSongs = songs.filter((s) => likedIds.includes(s.id));
   const historySongs = history.map(h => h.song);
   const selectedPlaylistData = selectedPlaylist
@@ -111,9 +122,17 @@ const LibraryView = () => {
           )}
         </div>
         <div className="flex-1 text-left min-w-0">
-          <p className={`text-sm font-medium truncate ${currentSong?.id === song.id ? 'text-primary' : 'text-foreground'}`}>
-            {song.title}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className={`text-sm font-medium truncate ${currentSong?.id === song.id ? 'text-primary' : 'text-foreground'}`}>
+              {song.title}
+            </p>
+            {isRecentlyAdded(song.id) && (
+              <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">
+                <Sparkles className="w-2 h-2" />
+                New
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
         </div>
       </button>
@@ -218,6 +237,11 @@ const LibraryView = () => {
             {tab.label}
             {tab.id === 'liked' && likedSongs.length > 0 && (
               <span className="bg-primary-foreground/20 rounded-full px-1.5 text-[10px]">{likedSongs.length}</span>
+            )}
+            {tab.id === 'recent' && recentlyAddedCount > 0 && (
+              <span className={`rounded-full px-1.5 text-[10px] ${activeTab === tab.id ? 'bg-primary-foreground/20' : 'bg-primary/20 text-primary'}`}>
+                {recentlyAddedCount}
+              </span>
             )}
           </button>
         ))}
@@ -334,7 +358,7 @@ const LibraryView = () => {
                 {activeTab === 'liked' ? <Heart className="w-7 h-7 text-primary" /> : activeTab === 'history' ? <History className="w-7 h-7 text-primary" /> : <FolderOpen className="w-7 h-7 text-primary" />}
               </div>
               <p className="text-sm font-medium text-foreground mb-1">
-                {activeTab === 'liked' ? 'No liked songs' : activeTab === 'history' ? 'No history yet' : activeTab === 'recent' ? 'No recent songs' : selectedPlaylist ? 'Playlist is empty' : 'No music yet'}
+                {activeTab === 'liked' ? 'No liked songs' : activeTab === 'history' ? 'No history yet' : activeTab === 'recent' ? 'No recently added songs' : selectedPlaylist ? 'Playlist is empty' : 'No music yet'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {activeTab === 'liked' ? 'Tap ♥ on songs you love' : activeTab === 'history' ? 'Songs you play will appear here' : 'Add music to get started'}

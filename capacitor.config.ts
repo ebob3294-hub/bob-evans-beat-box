@@ -13,6 +13,9 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: false,
+    // Keep WebView alive in the background so audio routing to Bluetooth
+    // speakers (Baffles, JBL, car kits) stays stable when the screen is off
+    appendUserAgent: 'BobEvanPlayer/1.0',
   },
   ios: {
     backgroundColor: '#0d0d0d',

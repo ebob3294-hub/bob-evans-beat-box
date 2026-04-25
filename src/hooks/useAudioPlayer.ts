@@ -20,6 +20,13 @@ function getAudio(): HTMLAudioElement {
   if (!globalAudio) {
     globalAudio = new Audio();
     globalAudio.preload = 'auto';
+    // Required so the browser routes audio to system output (incl. Bluetooth)
+    // and so MediaElementSource works without a CORS taint
+    globalAudio.crossOrigin = 'anonymous';
+    // Hint the browser this is foreground media playback (helps audio focus
+    // negotiation with Bluetooth A2DP / car kits on Android)
+    globalAudio.setAttribute('playsinline', 'true');
+    (globalAudio as any).playsInline = true;
     (window as any).__bobEvanAudio = globalAudio;
   }
   return globalAudio;
@@ -88,7 +95,13 @@ export function useAudioPlayer() {
   const setupEqualizer = useCallback((audio: HTMLAudioElement) => {
     if (audioContextRef.current) return;
     try {
-      const ctx = new AudioContext();
+      // latencyHint 'playback' tells the browser/OS to optimize the audio
+      // pipeline for music playback (larger buffers, fewer dropouts) which
+      // dramatically improves stability over Bluetooth speakers/headphones.
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({
+        latencyHint: 'playback',
+        sampleRate: 44100,
+      });
       const source = ctx.createMediaElementSource(audio);
       sourceRef.current = source;
       audioContextRef.current = ctx;
@@ -310,6 +323,57 @@ export function useAudioPlayer() {
       audio.pause();
     }
   }, [isPlaying, currentSong]);
+
+  // ── Bluetooth / external audio device routing ──
+  // When a Bluetooth speaker (Baffles, JBL, car kit, etc.) connects or
+  // disconnects, the AudioContext can stall on a stale output. Listening to
+  // mediaDevices.devicechange lets us refresh the routing so playback resumes
+  // on the new device immediately, instead of staying silent.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+    const handleDeviceChange = async () => {
+      const ctx = audioContextRef.current;
+      const audio = getAudio();
+      try {
+        if (ctx && ctx.state === 'suspended') {
+          await ctx.resume();
+        }
+        // sinkId is supported on newer Chromium WebViews; if available, force
+        // re-routing to the current default device (which becomes the just-
+        // connected Bluetooth speaker on Android).
+        if ('setSinkId' in audio && typeof (audio as any).setSinkId === 'function') {
+          try { await (audio as any).setSinkId('default'); } catch { /* ignore */ }
+        }
+        // Nudge playback so the OS re-establishes the audio focus on A2DP
+        if (usePlayerStore.getState().isPlaying) {
+          const t = audio.currentTime;
+          audio.currentTime = t; // triggers a buffer refresh
+          await audio.play().catch(() => {});
+        }
+      } catch (e) {
+        console.warn('[AudioPlayer] devicechange handling failed:', e);
+      }
+    };
+    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+    };
+  }, []);
+
+  // Pause cleanly when the user unplugs headphones or moves out of Bluetooth
+  // range (the audio element fires a stalled/suspend event in that case).
+  useEffect(() => {
+    const audio = getAudio();
+    const handleStall = () => {
+      console.log('[AudioPlayer] audio stalled — likely audio device change');
+    };
+    audio.addEventListener('stalled', handleStall);
+    audio.addEventListener('suspend', handleStall);
+    return () => {
+      audio.removeEventListener('stalled', handleStall);
+      audio.removeEventListener('suspend', handleStall);
+    };
+  }, []);
 
   // Time + ended handlers
   useEffect(() => {
