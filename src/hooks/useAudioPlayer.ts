@@ -20,6 +20,13 @@ function getAudio(): HTMLAudioElement {
   if (!globalAudio) {
     globalAudio = new Audio();
     globalAudio.preload = 'auto';
+    // Required so the browser routes audio to system output (incl. Bluetooth)
+    // and so MediaElementSource works without a CORS taint
+    globalAudio.crossOrigin = 'anonymous';
+    // Hint the browser this is foreground media playback (helps audio focus
+    // negotiation with Bluetooth A2DP / car kits on Android)
+    globalAudio.setAttribute('playsinline', 'true');
+    (globalAudio as any).playsInline = true;
     (window as any).__bobEvanAudio = globalAudio;
   }
   return globalAudio;
