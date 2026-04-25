@@ -278,6 +278,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setBgColor: (color) => set({ bgColor: color, bgImage: null }),
   setBgImage: (url) => set({ bgImage: url }),
   setTheme: (t) => { saveTheme(t); set({ theme: t }); },
+  setVisualizerStyle: (v) => { saveVisualizer(v); set({ visualizerStyle: v }); },
   setPermissionGranted: (granted) => {
     savePermission(granted);
     set({ permissionGranted: granted });
