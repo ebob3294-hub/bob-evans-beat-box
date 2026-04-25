@@ -122,9 +122,17 @@ const LibraryView = () => {
           )}
         </div>
         <div className="flex-1 text-left min-w-0">
-          <p className={`text-sm font-medium truncate ${currentSong?.id === song.id ? 'text-primary' : 'text-foreground'}`}>
-            {song.title}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <p className={`text-sm font-medium truncate ${currentSong?.id === song.id ? 'text-primary' : 'text-foreground'}`}>
+              {song.title}
+            </p>
+            {isRecentlyAdded(song.id) && (
+              <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">
+                <Sparkles className="w-2 h-2" />
+                New
+              </span>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground truncate">{song.artist}</p>
         </div>
       </button>
