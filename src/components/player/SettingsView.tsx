@@ -1,6 +1,7 @@
-import { usePlayerStore, type ThemeId } from '@/store/playerStore';
-import { Settings, Upload, Palette, X, User, Sparkles } from 'lucide-react';
+import { usePlayerStore, type ThemeId, type VisualizerStyle } from '@/store/playerStore';
+import { Settings, Upload, Palette, X, User, Sparkles, Activity } from 'lucide-react';
 import { useRef } from 'react';
+import MusicVisualizer from './MusicVisualizer';
 
 const BG_COLORS = [
   { name: 'Default', value: '' },
