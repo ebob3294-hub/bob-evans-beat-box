@@ -24,8 +24,19 @@ const THEME_SWATCHES: { id: ThemeId; name: string; hsl: string }[] = [
   { id: 'cyan',   name: 'Aqua',    hsl: '189 94% 50%' },
 ];
 
+const VISUALIZER_STYLES: { id: VisualizerStyle; name: string }[] = [
+  { id: 'bars',     name: 'Bars' },
+  { id: 'mirror',   name: 'Mirror' },
+  { id: 'wave',     name: 'Wave' },
+  { id: 'circular', name: 'Circular' },
+  { id: 'dots',     name: 'Dots' },
+  { id: 'blocks',   name: 'Blocks' },
+  { id: 'flame',    name: 'Flame' },
+  { id: 'ribbon',   name: 'Ribbon' },
+];
+
 const SettingsView = () => {
-  const { bgColor, bgImage, setBgColor, setBgImage, theme, setTheme } = usePlayerStore();
+  const { bgColor, bgImage, setBgColor, setBgImage, theme, setTheme, visualizerStyle, setVisualizerStyle, isPlaying } = usePlayerStore();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
