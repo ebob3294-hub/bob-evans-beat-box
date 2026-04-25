@@ -464,5 +464,64 @@ export function useAudioPlayer() {
     }
   }, [currentSong, isPlaying]);
 
+  // ── Native lockscreen / notification controls (Capacitor) ──
+  // Shows a persistent media notification with cover, title, artist and
+  // prev / play-pause / next buttons that work when the screen is off.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    if (!currentSong) {
+      hideMusicControls();
+      return;
+    }
+    showMusicControls(currentSong, isPlaying);
+    // Only re-create when the song changes; play state is updated below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSong]);
+
+  // Cheap update when only the play state changes (avoids re-creating the card)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    if (!currentSong) return;
+    updateMusicControlsPlayState(isPlaying);
+  }, [isPlaying, currentSong]);
+
+  // Wire native notification button presses into the player store
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const audio = getAudio();
+    const off = onMusicControlAction((action) => {
+      switch (action) {
+        case 'play':
+          audio.play().catch(() => {});
+          if (!usePlayerStore.getState().isPlaying) togglePlay();
+          break;
+        case 'pause':
+          audio.pause();
+          if (usePlayerStore.getState().isPlaying) togglePlay();
+          break;
+        case 'next':
+          nextSong();
+          break;
+        case 'previous':
+          prevSong();
+          break;
+        case 'destroy':
+          audio.pause();
+          if (usePlayerStore.getState().isPlaying) togglePlay();
+          break;
+      }
+    });
+    return () => { off(); };
+  }, [nextSong, prevSong, togglePlay]);
+
+  // Cleanup the notification when the hook unmounts (e.g. app reload)
+  useEffect(() => {
+    return () => {
+      if (Capacitor.isNativePlatform()) {
+        hideMusicControls();
+      }
+    };
+  }, []);
+
   return { seekTo, getDuration };
 }
