@@ -37,13 +37,24 @@ const LibraryView = () => {
 
   const tabs: { id: LibraryTab; label: string; icon: React.ReactNode }[] = [
     { id: 'all', label: 'All', icon: <Music className="w-3.5 h-3.5" /> },
-    { id: 'recent', label: 'Recent', icon: <Clock className="w-3.5 h-3.5" /> },
+    { id: 'recent', label: 'Recently Added', icon: <Sparkles className="w-3.5 h-3.5" /> },
     { id: 'liked', label: 'Liked', icon: <Heart className="w-3.5 h-3.5" /> },
     { id: 'history', label: 'History', icon: <History className="w-3.5 h-3.5" /> },
     { id: 'playlists', label: 'Playlists', icon: <ListMusic className="w-3.5 h-3.5" /> },
   ];
 
-  const recentSongs = [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
+  // "Recently Added" — songs added in the last 7 days, newest first.
+  // Falls back to the latest 30 if none have a fresh `addedAt` timestamp.
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const freshlyAdded = songs
+    .filter((s) => s.addedAt && now - s.addedAt < SEVEN_DAYS_MS)
+    .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  const recentSongs = freshlyAdded.length > 0
+    ? freshlyAdded
+    : [...songs].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 30);
+  const recentlyAddedCount = freshlyAdded.length;
+  const isRecentlyAdded = (id: string) => freshlyAdded.some((s) => s.id === id);
   const likedSongs = songs.filter((s) => likedIds.includes(s.id));
   const historySongs = history.map(h => h.song);
   const selectedPlaylistData = selectedPlaylist
