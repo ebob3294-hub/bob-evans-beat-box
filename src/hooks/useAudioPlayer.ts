@@ -3,6 +3,12 @@ import { Capacitor } from '@capacitor/core';
 import { usePlayerStore } from '@/store/playerStore';
 import { getAudioBlob } from '@/services/audioStorage';
 import { albumCovers } from '@/components/player/AlbumCovers';
+import {
+  showMusicControls,
+  updateMusicControlsPlayState,
+  hideMusicControls,
+  onMusicControlAction,
+} from '@/services/nativeMusicControls';
 
 /**
  * Global audio element managed by this hook.
