@@ -26,6 +26,9 @@ const HISTORY_KEY = 'bob-evan-history';
 const THEME_KEY = 'bob-evan-theme';
 
 export type ThemeId = 'red' | 'blue' | 'purple' | 'green' | 'orange' | 'cyan';
+export type VisualizerStyle = 'bars' | 'mirror' | 'wave' | 'circular' | 'dots' | 'blocks' | 'flame' | 'ribbon';
+
+const VISUALIZER_KEY = 'bob-evan-visualizer';
 
 function loadTheme(): ThemeId {
   const v = localStorage.getItem(THEME_KEY) as ThemeId | null;
@@ -33,6 +36,13 @@ function loadTheme(): ThemeId {
 }
 function saveTheme(t: ThemeId) {
   localStorage.setItem(THEME_KEY, t);
+}
+function loadVisualizer(): VisualizerStyle {
+  const v = localStorage.getItem(VISUALIZER_KEY) as VisualizerStyle | null;
+  return v || 'bars';
+}
+function saveVisualizer(v: VisualizerStyle) {
+  localStorage.setItem(VISUALIZER_KEY, v);
 }
 
 interface HistoryEntry {
@@ -86,6 +96,7 @@ interface PlayerState {
   bgColor: string;
   bgImage: string | null;
   theme: ThemeId;
+  visualizerStyle: VisualizerStyle;
   permissionGranted: boolean;
   isScanning: boolean;
 
@@ -118,6 +129,7 @@ interface PlayerState {
   setBgColor: (color: string) => void;
   setBgImage: (url: string | null) => void;
   setTheme: (t: ThemeId) => void;
+  setVisualizerStyle: (v: VisualizerStyle) => void;
   setPermissionGranted: (granted: boolean) => void;
   setIsScanning: (scanning: boolean) => void;
   removeSong: (songId: string) => void;
@@ -143,6 +155,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   effectsEnabled: true,
   bgColor: '',
   theme: loadTheme(),
+  visualizerStyle: loadVisualizer(),
   bgImage: null,
   playlists: loadPlaylists(),
   likedIds: loadLiked(),
@@ -265,6 +278,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setBgColor: (color) => set({ bgColor: color, bgImage: null }),
   setBgImage: (url) => set({ bgImage: url }),
   setTheme: (t) => { saveTheme(t); set({ theme: t }); },
+  setVisualizerStyle: (v) => { saveVisualizer(v); set({ visualizerStyle: v }); },
   setPermissionGranted: (granted) => {
     savePermission(granted);
     set({ permissionGranted: granted });

@@ -1,6 +1,7 @@
-import { usePlayerStore, type ThemeId } from '@/store/playerStore';
-import { Settings, Upload, Palette, X, User, Sparkles } from 'lucide-react';
+import { usePlayerStore, type ThemeId, type VisualizerStyle } from '@/store/playerStore';
+import { Settings, Upload, Palette, X, User, Sparkles, Activity } from 'lucide-react';
 import { useRef } from 'react';
+import MusicVisualizer from './MusicVisualizer';
 
 const BG_COLORS = [
   { name: 'Default', value: '' },
@@ -23,8 +24,19 @@ const THEME_SWATCHES: { id: ThemeId; name: string; hsl: string }[] = [
   { id: 'cyan',   name: 'Aqua',    hsl: '189 94% 50%' },
 ];
 
+const VISUALIZER_STYLES: { id: VisualizerStyle; name: string }[] = [
+  { id: 'bars',     name: 'Bars' },
+  { id: 'mirror',   name: 'Mirror' },
+  { id: 'wave',     name: 'Wave' },
+  { id: 'circular', name: 'Circular' },
+  { id: 'dots',     name: 'Dots' },
+  { id: 'blocks',   name: 'Blocks' },
+  { id: 'flame',    name: 'Flame' },
+  { id: 'ribbon',   name: 'Ribbon' },
+];
+
 const SettingsView = () => {
-  const { bgColor, bgImage, setBgColor, setBgImage, theme, setTheme } = usePlayerStore();
+  const { bgColor, bgImage, setBgColor, setBgImage, theme, setTheme, visualizerStyle, setVisualizerStyle, isPlaying } = usePlayerStore();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,7 +115,44 @@ const SettingsView = () => {
         </div>
       </div>
 
-      {/* Background Color */}
+      {/* Visualizer Style */}
+      <div className="px-5 mt-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Activity className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-display font-semibold">Visualizer Style</h3>
+        </div>
+        <div className="rounded-xl border border-border bg-card/40 p-3 mb-3">
+          <div className="h-16 w-full">
+            <MusicVisualizer isPlaying={isPlaying} bars={48} />
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center mt-2 capitalize">
+            {visualizerStyle} preview
+          </p>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {VISUALIZER_STYLES.map((v) => {
+            const active = visualizerStyle === v.id;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setVisualizerStyle(v.id)}
+                className={`flex flex-col items-center gap-1.5 p-2 rounded-lg border transition-all ${
+                  active
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border hover:border-muted-foreground/30'
+                }`}
+              >
+                <div className="w-full h-7 overflow-hidden rounded">
+                  <MusicVisualizer isPlaying={isPlaying} bars={20} style={v.id} />
+                </div>
+                <span className="text-[10px] text-foreground truncate">{v.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="px-5 mt-4">
         <div className="flex items-center gap-2 mb-3">
           <Palette className="w-4 h-4 text-primary" />
