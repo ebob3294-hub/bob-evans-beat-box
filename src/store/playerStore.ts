@@ -155,6 +155,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   effectsEnabled: true,
   bgColor: '',
   theme: loadTheme(),
+  visualizerStyle: loadVisualizer(),
   bgImage: null,
   playlists: loadPlaylists(),
   likedIds: loadLiked(),
