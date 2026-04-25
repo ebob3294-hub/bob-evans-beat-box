@@ -26,6 +26,9 @@ const HISTORY_KEY = 'bob-evan-history';
 const THEME_KEY = 'bob-evan-theme';
 
 export type ThemeId = 'red' | 'blue' | 'purple' | 'green' | 'orange' | 'cyan';
+export type VisualizerStyle = 'bars' | 'mirror' | 'wave' | 'circular' | 'dots' | 'blocks' | 'flame' | 'ribbon';
+
+const VISUALIZER_KEY = 'bob-evan-visualizer';
 
 function loadTheme(): ThemeId {
   const v = localStorage.getItem(THEME_KEY) as ThemeId | null;
@@ -33,6 +36,13 @@ function loadTheme(): ThemeId {
 }
 function saveTheme(t: ThemeId) {
   localStorage.setItem(THEME_KEY, t);
+}
+function loadVisualizer(): VisualizerStyle {
+  const v = localStorage.getItem(VISUALIZER_KEY) as VisualizerStyle | null;
+  return v || 'bars';
+}
+function saveVisualizer(v: VisualizerStyle) {
+  localStorage.setItem(VISUALIZER_KEY, v);
 }
 
 interface HistoryEntry {
