@@ -96,6 +96,7 @@ interface PlayerState {
   bgColor: string;
   bgImage: string | null;
   theme: ThemeId;
+  visualizerStyle: VisualizerStyle;
   permissionGranted: boolean;
   isScanning: boolean;
 
