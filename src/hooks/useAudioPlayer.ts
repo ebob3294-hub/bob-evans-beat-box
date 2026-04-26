@@ -27,12 +27,10 @@ function getAudio(): HTMLAudioElement {
     // Hint the browser this is foreground media playback (helps audio focus
     // negotiation with Bluetooth A2DP / car kits on Android)
     globalAudio.setAttribute('playsinline', 'true');
-    globalAudio.setAttribute('controlsList', 'nodownload noplaybackrate noremoteplayback');
-    globalAudio.setAttribute('x-webkit-airplay', 'deny');
     (globalAudio as any).playsInline = true;
-    if ('disableRemotePlayback' in globalAudio) {
-      (globalAudio as any).disableRemotePlayback = true;
-    }
+    // NOTE: do NOT set disableRemotePlayback / x-webkit-airplay deny here —
+    // those flags suppress the system MediaSession integration on Android
+    // WebView, which is exactly the lockscreen / notification bar we want.
     (window as any).__bobEvanAudio = globalAudio;
   }
   return globalAudio;
