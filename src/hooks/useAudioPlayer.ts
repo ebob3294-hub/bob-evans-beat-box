@@ -27,7 +27,6 @@ function getAudio(): HTMLAudioElement {
     // Hint the browser this is foreground media playback (helps audio focus
     // negotiation with Bluetooth A2DP / car kits on Android)
     globalAudio.setAttribute('playsinline', 'true');
-    globalAudio.setAttribute('controls', 'false');
     globalAudio.setAttribute('controlsList', 'nodownload noplaybackrate noremoteplayback');
     globalAudio.setAttribute('x-webkit-airplay', 'deny');
     (globalAudio as any).playsInline = true;
