@@ -109,6 +109,8 @@ export function useAudioPlayer() {
       const source = ctx.createMediaElementSource(audio);
       sourceRef.current = source;
       audioContextRef.current = ctx;
+      // Expose globally so the background-playback hook can resume it
+      (window as any).__bobEvanAudioCtx = ctx;
 
       // Pre-gain: headroom for EQ boosts
       const preGain = ctx.createGain();
