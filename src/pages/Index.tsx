@@ -9,6 +9,7 @@ import PermissionScreen, { ScanningOverlay } from '@/components/player/Permissio
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
+import { useBackgroundPlayback } from '@/hooks/useBackgroundPlayback';
 import { useEffect } from 'react';
 import { ThemeId } from '@/store/playerStore';
 
@@ -34,6 +35,7 @@ const Index = () => {
   const { activeView, bgColor, bgImage, permissionGranted, theme } = usePlayerStore();
   useAudioPlayer(); // Mount global audio playback
   useAndroidBackButton(); // Handle Android hardware back button
+  useBackgroundPlayback(); // Keep audio alive in background / lockscreen
   const ActiveComponent = views[activeView];
 
   // Apply theme accent colors as CSS variables
