@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import MusicVisualizer from './MusicVisualizer';
 
 const NowPlayingView = () => {
-  const { currentSong, isPlaying, togglePlay, nextSong, prevSong, shuffle, toggleShuffle, repeat, cycleRepeat, setActiveView, currentTime } = usePlayerStore();
+  const { currentSong, isPlaying, togglePlay, nextSong, prevSong, shuffle, toggleShuffle, repeat, setRepeat, setActiveView, currentTime } = usePlayerStore();
   const [duration, setDuration] = useState(0);
 
   // Poll duration from the global audio element
@@ -159,14 +159,35 @@ const NowPlayingView = () => {
         </button>
       </div>
 
-      {/* Repeat */}
-      <button onClick={cycleRepeat} className="mb-6">
-        {repeat === 'one' ? (
-          <Repeat1 className="w-5 h-5 text-primary" />
-        ) : (
-          <Repeat className={`w-5 h-5 ${repeat === 'all' ? 'text-primary' : 'text-muted-foreground'}`} />
-        )}
-      </button>
+      {/* Repeat controls — separate buttons for "Repeat song" and "Repeat all" */}
+      <div className="flex items-center gap-2 mb-6">
+        <button
+          onClick={() => setRepeat(repeat === 'one' ? 'off' : 'one')}
+          aria-label="إعادة تشغيل الأغنية"
+          aria-pressed={repeat === 'one'}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-colors min-h-[40px] active:scale-95 ${
+            repeat === 'one'
+              ? 'bg-primary/20 text-primary border border-primary/40'
+              : 'bg-muted/40 text-muted-foreground border border-transparent'
+          }`}
+        >
+          <Repeat1 className="w-4 h-4" />
+          <span>إعادة الأغنية</span>
+        </button>
+        <button
+          onClick={() => setRepeat(repeat === 'all' ? 'off' : 'all')}
+          aria-label="إعادة كل الأغاني"
+          aria-pressed={repeat === 'all'}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium transition-colors min-h-[40px] active:scale-95 ${
+            repeat === 'all'
+              ? 'bg-primary/20 text-primary border border-primary/40'
+              : 'bg-muted/40 text-muted-foreground border border-transparent'
+          }`}
+        >
+          <Repeat className="w-4 h-4" />
+          <span>إعادة الكل</span>
+        </button>
+      </div>
     </div>
   );
 };
