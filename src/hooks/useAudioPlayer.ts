@@ -27,12 +27,10 @@ function getAudio(): HTMLAudioElement {
     // Hint the browser this is foreground media playback (helps audio focus
     // negotiation with Bluetooth A2DP / car kits on Android)
     globalAudio.setAttribute('playsinline', 'true');
-    globalAudio.setAttribute('controlsList', 'nodownload noplaybackrate noremoteplayback');
-    globalAudio.setAttribute('x-webkit-airplay', 'deny');
     (globalAudio as any).playsInline = true;
-    if ('disableRemotePlayback' in globalAudio) {
-      (globalAudio as any).disableRemotePlayback = true;
-    }
+    // NOTE: do NOT set disableRemotePlayback / x-webkit-airplay deny here —
+    // those flags suppress the system MediaSession integration on Android
+    // WebView, which is exactly the lockscreen / notification bar we want.
     (window as any).__bobEvanAudio = globalAudio;
   }
   return globalAudio;
@@ -418,7 +416,6 @@ export function useAudioPlayer() {
   // tabs that are currently producing sound). Setting metadata + handlers
   // here ensures the controls are ready as soon as playback begins.
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) return;
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     if (!currentSong) {
       try { navigator.mediaSession.metadata = null; } catch { /* ignore */ }
@@ -520,7 +517,6 @@ export function useAudioPlayer() {
 
   // Keep position state in sync so the lockscreen scrubber updates
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) return;
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     if (!('setPositionState' in navigator.mediaSession)) return;
     const audio = getAudio();
@@ -536,64 +532,9 @@ export function useAudioPlayer() {
     }
   }, [currentSong, isPlaying]);
 
-  // ── Native lockscreen / notification controls (Capacitor) ──
-  // Shows a persistent media notification with cover, title, artist and
-  // prev / play-pause / next buttons that work when the screen is off.
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    if (!currentSong) {
-      hideMusicControls();
-      return;
-    }
-    showMusicControls(currentSong, isPlaying);
-    // Only re-create when the song changes; play state is updated below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSong]);
-
-  // Cheap update when only the play state changes (avoids re-creating the card)
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    if (!currentSong) return;
-    updateMusicControlsPlayState(isPlaying);
-  }, [isPlaying, currentSong]);
-
-  // Wire native notification button presses into the player store
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    const audio = getAudio();
-    const off = onMusicControlAction((action) => {
-      switch (action) {
-        case 'play':
-          audio.play().catch(() => {});
-          if (!usePlayerStore.getState().isPlaying) togglePlay();
-          break;
-        case 'pause':
-          audio.pause();
-          if (usePlayerStore.getState().isPlaying) togglePlay();
-          break;
-        case 'next':
-          nextSong();
-          break;
-        case 'previous':
-          prevSong();
-          break;
-        case 'destroy':
-          audio.pause();
-          if (usePlayerStore.getState().isPlaying) togglePlay();
-          break;
-      }
-    });
-    return () => { off(); };
-  }, [nextSong, prevSong, togglePlay]);
-
-  // Cleanup the notification when the hook unmounts (e.g. app reload)
-  useEffect(() => {
-    return () => {
-      if (Capacitor.isNativePlatform()) {
-        hideMusicControls();
-      }
-    };
-  }, []);
+  // Native plugin path removed — Web MediaSession (above) is used instead
+  // because it works reliably in Android WebView (Chromium bridges it to
+  // the system MediaSession service, which renders the lockscreen card).
 
   return { seekTo, getDuration };
 }
