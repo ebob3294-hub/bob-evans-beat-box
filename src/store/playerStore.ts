@@ -106,7 +106,6 @@ interface PlayerState {
   togglePlay: () => void;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
-  setRepeat: (mode: 'off' | 'all' | 'one') => void;
   setCurrentTime: (time: number) => void;
   setActiveCategory: (cat: string) => void;
   setActiveView: (view: PlayerState['activeView']) => void;
@@ -186,7 +185,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   cycleRepeat: () => set((s) => ({
     repeat: s.repeat === 'off' ? 'all' : s.repeat === 'all' ? 'one' : 'off',
   })),
-  setRepeat: (mode) => set({ repeat: mode }),
   setCurrentTime: (time) => set({ currentTime: time }),
   setActiveCategory: (cat) => set({ activeCategory: cat }),
   setActiveView: (view) => set({ activeView: view }),
