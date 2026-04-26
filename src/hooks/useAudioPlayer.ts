@@ -20,13 +20,20 @@ function getAudio(): HTMLAudioElement {
   if (!globalAudio) {
     globalAudio = new Audio();
     globalAudio.preload = 'auto';
+    globalAudio.controls = false;
     // Required so the browser routes audio to system output (incl. Bluetooth)
     // and so MediaElementSource works without a CORS taint
     globalAudio.crossOrigin = 'anonymous';
     // Hint the browser this is foreground media playback (helps audio focus
     // negotiation with Bluetooth A2DP / car kits on Android)
     globalAudio.setAttribute('playsinline', 'true');
+    globalAudio.setAttribute('controls', 'false');
+    globalAudio.setAttribute('controlsList', 'nodownload noplaybackrate noremoteplayback');
+    globalAudio.setAttribute('x-webkit-airplay', 'deny');
     (globalAudio as any).playsInline = true;
+    if ('disableRemotePlayback' in globalAudio) {
+      (globalAudio as any).disableRemotePlayback = true;
+    }
     (window as any).__bobEvanAudio = globalAudio;
   }
   return globalAudio;
@@ -412,6 +419,7 @@ export function useAudioPlayer() {
   // tabs that are currently producing sound). Setting metadata + handlers
   // here ensures the controls are ready as soon as playback begins.
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     if (!currentSong) {
       try { navigator.mediaSession.metadata = null; } catch { /* ignore */ }
@@ -513,6 +521,7 @@ export function useAudioPlayer() {
 
   // Keep position state in sync so the lockscreen scrubber updates
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) return;
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     if (!('setPositionState' in navigator.mediaSession)) return;
     const audio = getAudio();
