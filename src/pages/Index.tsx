@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 import { useBackgroundPlayback } from '@/hooks/useBackgroundPlayback';
+import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import { useEffect } from 'react';
 import { ThemeId } from '@/store/playerStore';
 
