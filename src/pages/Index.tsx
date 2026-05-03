@@ -37,6 +37,7 @@ const Index = () => {
   useAudioPlayer(); // Mount global audio playback
   useAndroidBackButton(); // Handle Android hardware back button
   useBackgroundPlayback(); // Keep audio alive in background / lockscreen
+  useKeyboardNavigation(); // D-pad + keyboard shortcuts (Nokia / KaiOS / TV browsers)
   const ActiveComponent = views[activeView];
 
   // Apply theme accent colors as CSS variables
