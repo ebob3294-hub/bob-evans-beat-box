@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useAndroidBackButton } from '@/hooks/useAndroidBackButton';
 import { useBackgroundPlayback } from '@/hooks/useBackgroundPlayback';
+import { useKeyboardNavigation } from '@/hooks/useKeyboardNavigation';
 import { useEffect } from 'react';
 import { ThemeId } from '@/store/playerStore';
 
@@ -36,6 +37,7 @@ const Index = () => {
   useAudioPlayer(); // Mount global audio playback
   useAndroidBackButton(); // Handle Android hardware back button
   useBackgroundPlayback(); // Keep audio alive in background / lockscreen
+  useKeyboardNavigation(); // D-pad + keyboard shortcuts (Nokia / KaiOS / TV browsers)
   const ActiveComponent = views[activeView];
 
   // Apply theme accent colors as CSS variables
